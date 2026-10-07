@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0B1426">
+<title>PsihORAR · Orar Facultatea de Psihologie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="eyebrow">Facultatea de Psihologie</div>
+    <h1>PsihORAR</h1>
+  </div>
+  <div class="clock" aria-live="off">
+    <div class="clock-date" id="clockDate"></div>
+    <div class="clock-time" id="clockTime"></div>
+    <div class="clock-week" id="clockWeek"></div>
+  </div>
+  <button type="button" class="btn ghost" id="adminButton">Administrator</button>
+</header>
+
+<main>
+  <section class="controls" aria-label="Filtre orar">
+    <div class="field">
+      <label for="yearSelect">An</label>
+      <select id="yearSelect"></select>
+    </div>
+    <div class="field">
+      <label for="groupSelect">Grupă</label>
+      <select id="groupSelect"></select>
+    </div>
+    <div class="field">
+      <span class="label" id="parityLabel">Săptămâna afișată</span>
+      <div class="segmented" role="group" aria-labelledby="parityLabel">
+        <button type="button" id="parityOdd" aria-pressed="false">Impară</button>
+        <button type="button" id="parityEven" aria-pressed="false">Pară</button>
+      </div>
+    </div>
+    <a class="btn ghost" id="calendarLink" href="#" download>Adaugă în calendar (.ics)</a>
+  </section>
+
+  <div class="legend" aria-label="Legendă">
+    <span><i class="dot past"></i>Trecut</span>
+    <span><i class="dot live"></i>În desfășurare</span>
+    <span><i class="dot future"></i>Urmează</span>
+    <span><b class="opt">(Opt.)</b>Disciplină opțională</span>
+  </div>
+
+  <h2 class="range" id="rangeTitle"></h2>
+  <p class="notice" id="notice" hidden></p>
+  <section class="week" id="week" aria-label="Orar săptămânal"></section>
+
+  <section class="admin" id="adminPanel" hidden aria-labelledby="adminTitle">
+    <div class="admin-head">
+      <h2 id="adminTitle">Administrare</h2>
+      <button type="button" class="btn ghost" id="logoutButton">Deconectare</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabSettings" aria-controls="paneSettings" aria-selected="true">Setări și săptămâni</button>
+      <button type="button" role="tab" id="tabSessions" aria-controls="paneSessions" aria-selected="false">Ore</button>
+      <button type="button" role="tab" id="tabImport" aria-controls="paneImport" aria-selected="false">Import .xlsx</button>
+    </div>
+
+    <div class="pane" id="paneSettings" role="tabpanel" aria-labelledby="tabSettings">
+      <form id="settingsForm" class="row">
+        <div class="field">
+          <label for="semesterStart">Începutul semestrului</label>
+          <input type="date" id="semesterStart" required>
+        </div>
+        <div class="field">
+          <label for="semesterWeeks">Număr de săptămâni</label>
+          <input type="number" id="semesterWeeks" min="1" max="60" required>
+        </div>
+        <button type="submit" class="btn primary">Salvează</button>
+      </form>
+      <p class="hint" id="settingsInfo"></p>
+    </div>
+
+    <div class="pane" id="paneSessions" role="tabpanel" aria-labelledby="tabSessions" hidden>
+      <p class="hint" id="sessionsInfo"></p>
+      <div id="sessionRows" class="rows"></div>
+      <h3>Adaugă oră</h3>
+      <div id="newSession"></div>
+    </div>
+
+    <div class="pane" id="paneImport" role="tabpanel" aria-labelledby="tabImport" hidden>
+      <form id="importForm" class="row">
+        <div class="field grow">
+          <label for="importFile">Fișier orar (.xlsx)</label>
+          <input type="file" id="importFile" accept=".xlsx" required>
+        </div>
+        <button type="submit" class="btn primary">Analizează</button>
+      </form>
+      <p class="hint">Fișierul este doar analizat. Orarul se schimbă abia după „Publică”.</p>
+      <div id="importResult"></div>
+    </div>
+    <p class="status" id="adminStatus" role="status"></p>
+  </section>
+</main>
+
+<dialog id="loginDialog" aria-labelledby="loginTitle">
+  <form id="loginForm" method="dialog">
+    <h2 id="loginTitle">Autentificare administrator</h2>
+    <div class="field">
+      <label for="loginEmail">Email</label>
+      <input type="email" id="loginEmail" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label for="loginPassword">Parolă</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" required>
+    </div>
+    <p class="error" id="loginError" role="alert" hidden></p>
+    <div class="row end">
+      <button type="button" class="btn ghost" id="loginCancel">Renunță</button>
+      <button type="submit" class="btn primary">Intră</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SessionType {
+  curs
+  seminar
+  practica
+}
+
+enum WeekParity {
+  all
+  odd
+  even
+}
+
+enum ApnsEnv {
+  sandbox
+  production
+}
+
+enum ImportStatus {
+  parsed
+  published
+  failed
+}
+
+model StudyYear {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  sourceSheet String       @unique
+  groups      StudyGroup[]
+}
+
+model StudyGroup {
+  id       String         @id @default(uuid())
+  yearId   String
+  name     String
+  /// Timetable version, incremented on every publish that changes this group.
+  version  Int            @default(0)
+  year     StudyYear      @relation(fields: [yearId], references: [id], onDelete: Cascade)
+  sessions ClassSession[]
+  devices  Device[]
+
+  @@unique([yearId, name])
+}
+
+model ClassSession {
+  id         String      @id @default(uuid())
+  groupId    String
+  /// 1 = Monday ... 5 = Friday
+  weekday    Int
+  /// "HH:mm", Europe/Bucharest wall time
+  startTime  String
+  endTime    String
+  name       String
+  type       SessionType
+  professor  String
+  room       String
+  weekParity WeekParity
+  isOptional Boolean     @default(false)
+  updatedAt  DateTime    @updatedAt
+  group      StudyGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, weekday])
+}
+
+model Device {
+  /// Random UUID generated on the device.
+  id          String     @id
+  apnsToken   String
+  groupId     String
+  environment ApnsEnv
+  lastSeenAt  DateTime   @default(now())
+  group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+}
+
+/// Admin account for the in-app login screen. Credentials are set by the
+/// operator (CLI / environment), never self-registered.
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model ImportJob {
+  id          String       @id @default(uuid())
+  fileName    String
+  status      ImportStatus
+  /// Parsed workbook (years, groups, sessions) applied on publish.
+  payload     Json
+  diff        Json
+  errors      Json
+  createdAt   DateTime     @default(now())
+  publishedAt DateTime?
+}
+
+model AppConfig {
+  id            Int    @id @default(1)
+  /// ISO date, a Monday. Week 1 is odd.
+  semesterStart String @default("2026-09-28")
+  /// ISO date, last day of week 20 (inclusive).
+  semesterEnd   String @default("2027-02-14")
+  timezone      String @default("Europe/Bucharest")
+}

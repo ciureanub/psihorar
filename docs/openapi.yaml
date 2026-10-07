@@ -1,0 +1,341 @@
+openapi: 3.0.3
+info:
+  title: PsihORAR API
+  version: 1.0.0
+  description: Timetable API for the Faculty of Psychology. Public endpoints need no credentials; admin endpoints need a bearer token from /v1/admin/login.
+servers:
+  - url: http://localhost:3000
+paths:
+  /v1/config:
+    get:
+      summary: Semester configuration
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Config' }
+  /v1/years:
+    get:
+      summary: Study years
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Year' }
+  /v1/years/{id}/groups:
+    get:
+      summary: Groups of a year
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Group' }
+        '404': { description: year_not_found }
+  /v1/groups/{id}/timetable:
+    get:
+      summary: Timetable of a group
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: If-None-Match
+          in: header
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Timetable' }
+        '304': { description: Not modified }
+        '404': { description: group_not_found }
+  /v1/devices/{id}:
+    put:
+      summary: Register or update a device for push
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [apnsToken, groupId, environment]
+              properties:
+                apnsToken: { type: string, description: Hex APNs device token }
+                groupId: { type: string, format: uuid }
+                environment: { type: string, enum: [sandbox, production] }
+      responses:
+        '204': { description: Registered }
+        '404': { description: group_not_found }
+    delete:
+      summary: Unregister a device
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '204': { description: Removed }
+  /v1/admin/login:
+    post:
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  expiresInSeconds: { type: integer, example: 43200 }
+        '401': { description: invalid_credentials }
+  /v1/admin/imports:
+    post:
+      summary: Upload a timetable workbook. Nothing is written until publish.
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Parsed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportResult' }
+        '400': { description: file_required, xlsx_required or unreadable_workbook }
+        '401': { description: unauthorized }
+  /v1/admin/imports/{id}/publish:
+    post:
+      summary: Apply an import, bump changed groups, send push
+      security: [{ adminToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: Published
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublishResult' }
+        '404': { description: import_not_found }
+        '409': { description: already_published }
+  /v1/admin/groups/{id}/sessions:
+    get:
+      summary: Sessions of a group, with ids, for the editor
+      security: [{ adminToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Session' }
+  /v1/admin/sessions:
+    post:
+      summary: Add a session
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/SessionInput'
+                - type: object
+                  required: [groupId]
+                  properties:
+                    groupId: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+  /v1/admin/sessions/{id}:
+    patch:
+      summary: Edit a session (any subset of fields)
+      security: [{ adminToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SessionInput' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '404': { description: session_not_found }
+    delete:
+      summary: Remove a session
+      security: [{ adminToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '204': { description: Removed }
+        '404': { description: session_not_found }
+  /v1/admin/config:
+    put:
+      summary: Change semester dates
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                semesterStart: { type: string, format: date }
+                semesterEnd: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Config' }
+components:
+  securitySchemes:
+    adminToken:
+      type: http
+      scheme: bearer
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    Config:
+      type: object
+      properties:
+        semesterStart: { type: string, format: date, example: '2026-09-28' }
+        semesterEnd: { type: string, format: date, example: '2027-02-14' }
+        timezone: { type: string, example: Europe/Bucharest }
+    Year:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, example: An I }
+    Group:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, example: Grupa I }
+        version: { type: integer }
+    SessionInput:
+      type: object
+      properties:
+        weekday: { type: integer, minimum: 1, maximum: 5 }
+        startTime: { type: string, example: '08:00' }
+        endTime: { type: string, example: '10:00' }
+        name: { type: string }
+        type: { type: string, enum: [curs, seminar, practica] }
+        professor: { type: string }
+        room: { type: string }
+        weekParity: { type: string, enum: [all, odd, even] }
+        isOptional: { type: boolean }
+    Session:
+      allOf:
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+        - $ref: '#/components/schemas/SessionInput'
+    Timetable:
+      type: object
+      properties:
+        groupId: { type: string, format: uuid }
+        groupName: { type: string }
+        version: { type: integer }
+        sessions:
+          type: array
+          items: { $ref: '#/components/schemas/Session' }
+    GroupDiff:
+      type: object
+      properties:
+        year: { type: string }
+        group: { type: string }
+        isNewGroup: { type: boolean }
+        added:
+          type: array
+          items: { $ref: '#/components/schemas/SessionInput' }
+        changed:
+          type: array
+          items:
+            type: object
+            properties:
+              before: { $ref: '#/components/schemas/SessionInput' }
+              after: { $ref: '#/components/schemas/SessionInput' }
+        removed:
+          type: array
+          items: { $ref: '#/components/schemas/SessionInput' }
+    ImportResult:
+      type: object
+      properties:
+        importId: { type: string, format: uuid }
+        fileName: { type: string }
+        years:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              sourceSheet: { type: string }
+              groups:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    sessions: { type: integer }
+        diff:
+          type: array
+          items: { $ref: '#/components/schemas/GroupDiff' }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              sheet: { type: string }
+              cell: { type: string }
+              text: { type: string }
+              reason: { type: string }
+    PublishResult:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              year: { type: string }
+              name: { type: string }
+              version: { type: integer }
+        push:
+          type: object
+          properties:
+            sent: { type: integer }
+            removedTokens: { type: integer }
+            failures: { type: integer }

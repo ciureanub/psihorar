@@ -1,0 +1,36 @@
+{
+  "name": "psihorar-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file=../.env src/server.ts",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "start": "node --env-file-if-exists=../.env dist/src/server.js",
+    "cli": "tsx --env-file=../.env src/cli/psihorar.ts",
+    "db:push": "node --env-file=../.env node_modules/prisma/build/index.js db push",
+    "test": "vitest run",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "prisma:validate": "prisma validate"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^9.4.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@prisma/client": "^6.0.0",
+    "exceljs": "^4.4.0",
+    "fastify": "^5.12.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "prisma": "^6.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "bin": {
+    "psihorar": "dist/src/cli/psihorar.js"
+  }
+}
