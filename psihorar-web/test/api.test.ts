@@ -228,6 +228,39 @@ describe('API', () => {
     expect(res.body.split('\r\n').every((line) => Buffer.byteLength(line) <= 75)).toBe(true);
   });
 
+  it('names the calendar file after year and group', async () => {
+    await importAll();
+    const res = await app.inject({ url: `/api/groups/${await groupId('An I', 'Grupa VII')}/calendar.ics` });
+    expect(res.headers['content-disposition']).toBe('attachment; filename="psihorar-an-i-grupa-vii.ics"');
+  });
+
+  it('serves a subscription feed by year and group name', async () => {
+    await importAll();
+    const feed = await app.inject({ url: '/api/calendar/an-ii/grupa-iii.ics' });
+    expect(feed.statusCode).toBe(200);
+    expect(feed.headers['content-type']).toContain('text/calendar');
+    expect(feed.headers['content-disposition']).toBeUndefined();
+    expect(feed.body).toContain('X-WR-CALNAME:PsihORAR An II Grupa III');
+    expect(feed.body).toContain('REFRESH-INTERVAL;VALUE=DURATION:PT6H');
+    expect((await app.inject({ url: '/api/calendar/an-ix/grupa-i.ics' })).statusCode).toBe(404);
+    expect((await app.inject({ url: '/api/calendar/an-i/grupa-xx.ics' })).statusCode).toBe(404);
+    expect((await app.inject({ url: '/api/calendar/an-i/grupa-i.txt' })).statusCode).toBe(400);
+  });
+
+  it('keeps event UIDs stable when the timetable is rebuilt from scratch', async () => {
+    await importAll();
+    const uids = (body: string) => body.match(/^UID:.*$/gm)?.sort();
+    const first = uids((await app.inject({ url: '/api/calendar/an-i/grupa-i.ics' })).body);
+    persistence = new MemoryPersistence();
+    app = await open();
+    const login = await app.inject({ method: 'POST', url: '/api/admin/login', payload: { email: EMAIL, password: PASSWORD } });
+    auth = { authorization: `Bearer ${login.json().token}` };
+    await importAll();
+    const second = uids((await app.inject({ url: '/api/calendar/an-i/grupa-i.ics' })).body);
+    expect(first).toHaveLength(17);
+    expect(second).toEqual(first);
+  });
+
   it('rejects malformed input', async () => {
     expect((await app.inject({ url: '/api/groups/not-a-uuid/timetable' })).statusCode).toBe(400);
     expect((await app.inject({ url: `/api/groups/${UNKNOWN}/timetable` })).statusCode).toBe(404);

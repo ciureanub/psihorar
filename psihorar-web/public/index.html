@@ -41,7 +41,24 @@
         <button type="button" id="parityEven" aria-pressed="false">Pară</button>
       </div>
     </div>
-    <a class="btn ghost" id="calendarLink" href="#" download>Adaugă în calendar (.ics)</a>
+    <a class="btn ghost" id="calendarLink" href="#" download="psihorar.ics">Descarcă calendarul (.ics)</a>
+    <details class="subscribe" id="subscribeBox">
+      <summary class="btn ghost">Abonare calendar</summary>
+      <div class="subscribe-panel">
+        <p class="hint">Calendarul se actualizează singur când se schimbă orarul grupei.</p>
+        <div class="row">
+          <a class="btn primary" id="subscribeGoogle" href="#" target="_blank" rel="noopener">Google Calendar</a>
+          <a class="btn primary" id="subscribeApple" href="#">Apple / Outlook</a>
+        </div>
+        <div class="field">
+          <label for="subscribeUrl">Link de abonare</label>
+          <div class="row nowrap">
+            <input type="text" id="subscribeUrl" readonly>
+            <button type="button" class="btn quiet" id="copySubscribe">Copiază</button>
+          </div>
+        </div>
+      </div>
+    </details>
   </section>
 
   <div class="legend" aria-label="Legendă">

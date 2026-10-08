@@ -5,7 +5,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { issueToken, TOKEN_TTL_SECONDS, verifyPassword, verifyToken } from './auth.js';
 import { computeDiff } from './diff.js';
-import { buildCalendar } from './ics.js';
+import { buildCalendar, calendarFileName, slugify } from './ics.js';
 import { parseWorkbook, type ParsedSession } from './parser.js';
 import type { Session, Store } from './store.js';
 
@@ -106,8 +106,40 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
       if (!group) return reply.code(404).send({ error: 'group_not_found' });
       return reply
         .header('Content-Type', 'text/calendar; charset=utf-8')
-        .header('Content-Disposition', 'attachment; filename="psihorar.ics"')
+        .header('Content-Disposition', `attachment; filename="${calendarFileName(group.yearName, group.name)}"`)
         .send(buildCalendar(store.getConfig(), group, store.listSessions(group.id)));
+    },
+  );
+
+  // Subscription feed. Addressed by year and group name, not by id, so the
+  // link keeps working when the timetable is re-imported or the database rebuilt.
+  app.get<{ Params: { year: string; file: string } }>(
+    '/api/calendar/:year/:file',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['year', 'file'],
+          properties: {
+            year: { type: 'string', pattern: '^[a-z0-9-]{1,40}$' },
+            file: { type: 'string', pattern: '^[a-z0-9-]{1,40}\\.ics$' },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const groupSlug = req.params.file.slice(0, -4);
+      for (const year of store.listYears()) {
+        if (slugify(year.name) !== req.params.year) continue;
+        const match = year.groups.find((g) => slugify(g.name) === groupSlug);
+        const group = match && store.getGroup(match.id);
+        if (!group) break;
+        return reply
+          .header('Content-Type', 'text/calendar; charset=utf-8')
+          .header('Cache-Control', 'public, max-age=900')
+          .send(buildCalendar(store.getConfig(), group, store.listSessions(group.id)));
+      }
+      return reply.code(404).send({ error: 'group_not_found' });
     },
   );
 

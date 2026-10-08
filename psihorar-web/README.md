@@ -5,7 +5,7 @@ Orar web pentru Facultatea de Psihologie: vizualizare săptămânală, responsiv
 - Orar pe an și grupă, săptămână impară / pară, ora curentă în fusul Europe/Bucharest.
 - Gri = oră trecută, albastru = în desfășurare, verde = urmează.
 - Fiecare oră arată: nume, tip (Curs / Seminar / Practică), profesor coordonator, sala, (Opt.).
-- Export calendar (.ics) per grupă, cu recurență săptămânală sau la 2 săptămâni.
+- Calendar per grupă: descărcare `.ics` (`psihorar-an-i-grupa-i.ics`) sau abonare (Google, Apple, Outlook) la `/api/calendar/<an>/<grupa>.ics`, care se actualizează singură.
 - Administrator: setări semestru, editare ore, import din .xlsx cu previzualizarea diferențelor.
 
 ## Publicare pe Replit
@@ -50,7 +50,7 @@ Pe Windows (PowerShell): `$env:ADMIN_EMAIL="..."; $env:ADMIN_PASSWORD="..."; npm
 | `src/auth.ts` | parolă (scrypt) și sesiune de administrator |
 | `public/` | pagina: `index.html`, `styles.css`, `app.js` |
 | `src/exclusions.ts` | orele scoase din orar la cerere; importul le ignoră |
-| `test/` | 32 de teste (`npm test`) |
+| `test/` | 35 de teste (`npm test`) |
 
 ## Reguli
 

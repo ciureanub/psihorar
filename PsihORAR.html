@@ -105,6 +105,20 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--gold); }
 }
 .segmented button[aria-pressed="true"] { background: var(--gold); color: #0B1426; }
 
+.subscribe { position: relative; }
+.subscribe summary { list-style: none; }
+.subscribe summary::-webkit-details-marker { display: none; }
+.subscribe-panel {
+  position: absolute; z-index: 5; top: calc(100% + 8px); left: 0;
+  width: min(420px, calc(100vw - 32px));
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 14px; padding: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+}
+.subscribe-panel .hint { margin: 0; }
+.row.nowrap { flex-wrap: nowrap; }
+@media (max-width: 640px) { .subscribe-panel { position: static; margin-top: 8px; } }
+
 .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 18px 0 6px; font-size: 13px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -227,7 +241,7 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
         <button type="button" id="parityEven" aria-pressed="false">Pară</button>
       </div>
     </div>
-    <a class="btn ghost" id="calendarLink" href="#" download>Adaugă în calendar (.ics)</a>
+    <a class="btn ghost" id="calendarLink" href="#" download="psihorar.ics">Descarcă calendarul (.ics)</a>
   </section>
 
   <div class="legend" aria-label="Legendă">
@@ -544,6 +558,19 @@ async function api(path, options = {}) {
 
 // ---------- Calendar export, built in the browser ----------
 
+/** Same UID for the same class across versions, so re-importing updates instead of duplicating. */
+function eventUid(found, s) {
+  const key = [found.year.name, found.group.name, s.weekday, s.startTime, s.weekParity, s.type, s.name].join('|');
+  let a = 0x811c9dc5;
+  let b = 0x01000193;
+  for (const ch of key) {
+    const c = ch.codePointAt(0);
+    a = Math.imul(a ^ c, 0x01000193) >>> 0;
+    b = Math.imul(b ^ c, 0x5bd1e995) >>> 0;
+  }
+  return `${a.toString(16).padStart(8, '0')}${b.toString(16).padStart(8, '0')}@psihorar`;
+}
+
 function buildCalendar(found) {
   const cfg = localConfig();
   const esc = (t) => String(t).replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
@@ -578,7 +605,7 @@ function buildCalendar(found) {
     if (first > cfg.semesterEnd) continue;
     const parity = s.weekParity === 'all' ? 'săptămânal' : s.weekParity === 'odd' ? 'săptămâni impare' : 'săptămâni pare';
     lines.push(
-      'BEGIN:VEVENT', `UID:${s.id}-${found.group.id}@psihorar`, `DTSTAMP:${stamp}`,
+      'BEGIN:VEVENT', `UID:${eventUid(found, s)}`, `DTSTAMP:${stamp}`,
       `DTSTART;TZID=Europe/Bucharest:${compact(first, s.startTime)}`,
       `DTEND;TZID=Europe/Bucharest:${compact(first, s.endTime)}`,
       `RRULE:FREQ=WEEKLY;INTERVAL=${s.weekParity === 'all' ? 1 : 2};UNTIL=${until}`,
@@ -627,8 +654,19 @@ async function selectGroup(groupId) {
   state.scrolledToToday = false;
   store('psihorar.group', groupId);
   fillSelectors();
+  updateCalendarLinks();
   await loadTimetable();
 }
+
+const slugify = (text) =>
+  text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+function calendarFileName() {
+  const meta = currentGroupMeta();
+  return meta ? `psihorar-${slugify(meta.year.name)}-${slugify(meta.group.name)}.ics` : 'psihorar.ics';
+}
+
+function updateCalendarLinks() {}
 
 async function loadTimetable() {
   if (!state.groupId) return;
@@ -940,7 +978,7 @@ $('settingsForm').addEventListener('submit', async (event) => {
 $('calendarLink').addEventListener('click', (event) => {
   event.preventDefault();
   const found = findGroup(state.groupId);
-  if (found) download('psihorar.ics', buildCalendar(found), 'text/calendar;charset=utf-8');
+  if (found) download(calendarFileName(), buildCalendar(found), 'text/calendar;charset=utf-8');
 });
 
 $('exportData').addEventListener('click', () => {

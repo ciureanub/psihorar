@@ -141,8 +141,29 @@ async function selectGroup(groupId) {
   state.scrolledToToday = false;
   store('psihorar.group', groupId);
   fillSelectors();
-  $('calendarLink').href = `/api/groups/${groupId}/calendar.ics`;
+  updateCalendarLinks();
   await loadTimetable();
+}
+
+const slugify = (text) =>
+  text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+function calendarFileName() {
+  const meta = currentGroupMeta();
+  return meta ? `psihorar-${slugify(meta.year.name)}-${slugify(meta.group.name)}.ics` : 'psihorar.ics';
+}
+
+function updateCalendarLinks() {
+  const meta = currentGroupMeta();
+  if (!meta) return;
+  $('calendarLink').href = `/api/groups/${meta.group.id}/calendar.ics`;
+  $('calendarLink').download = calendarFileName();
+  const path = `/api/calendar/${slugify(meta.year.name)}/${slugify(meta.group.name)}.ics`;
+  const https = `${location.origin}${path}`;
+  const webcal = https.replace(/^https?:/, 'webcal:');
+  $('subscribeUrl').value = https;
+  $('subscribeApple').href = webcal;
+  $('subscribeGoogle').href = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`;
 }
 
 async function loadTimetable() {
@@ -451,6 +472,21 @@ $('yearSelect').addEventListener('change', (e) => {
   if (year?.groups[0]) selectGroup(year.groups[0].id);
 });
 $('groupSelect').addEventListener('change', (e) => selectGroup(e.target.value));
+$('copySubscribe').addEventListener('click', async () => {
+  const input = $('subscribeUrl');
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch {
+    input.select();
+    document.execCommand('copy');
+  }
+  $('copySubscribe').textContent = 'Copiat';
+  setTimeout(() => { $('copySubscribe').textContent = 'Copiază'; }, 1500);
+});
+document.addEventListener('click', (event) => {
+  const box = $('subscribeBox');
+  if (box.open && !box.contains(event.target)) box.open = false;
+});
 $('parityOdd').addEventListener('click', () => { state.parity = 'odd'; render(); });
 $('parityEven').addEventListener('click', () => { state.parity = 'even'; render(); });
 

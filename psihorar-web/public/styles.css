@@ -94,6 +94,20 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--gold); }
 }
 .segmented button[aria-pressed="true"] { background: var(--gold); color: #0B1426; }
 
+.subscribe { position: relative; }
+.subscribe summary { list-style: none; }
+.subscribe summary::-webkit-details-marker { display: none; }
+.subscribe-panel {
+  position: absolute; z-index: 5; top: calc(100% + 8px); left: 0;
+  width: min(420px, calc(100vw - 32px));
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 14px; padding: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+}
+.subscribe-panel .hint { margin: 0; }
+.row.nowrap { flex-wrap: nowrap; }
+@media (max-width: 640px) { .subscribe-panel { position: static; margin-top: 8px; } }
+
 .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 18px 0 6px; font-size: 13px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mondayOf, semesterEnd } from './parity.js';
 import type { Config, Session } from './store.js';
 
@@ -22,6 +23,31 @@ const VTIMEZONE = [
 ];
 
 const TYPE_LABEL = { curs: 'Curs', seminar: 'Seminar', practica: 'Practică' } as const;
+
+/** "An I" -> "an-i", "Grupa VII" -> "grupa-vii". Diacritics removed. */
+export function slugify(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/** "psihorar-an-i-grupa-i.ics" */
+export function calendarFileName(yearName: string, groupName: string): string {
+  return `psihorar-${slugify(yearName)}-${slugify(groupName)}.ics`;
+}
+
+/**
+ * Event id built from what the class is, not from a database id, so the same
+ * class keeps its UID across imports and calendar apps update it instead of
+ * adding a duplicate.
+ */
+export function eventUid(yearName: string, groupName: string, s: Session): string {
+  const key = [yearName, groupName, s.weekday, s.startTime, s.weekParity, s.type, s.name].join('|');
+  return `${createHash('sha1').update(key).digest('hex').slice(0, 20)}@psihorar`;
+}
 
 function addDays(dateISO: string, days: number): string {
   const d = new Date(`${dateISO}T00:00:00Z`);
@@ -78,6 +104,9 @@ export function buildCalendar(
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeText(`PsihORAR ${group.yearName} ${group.name}`)}`,
     'X-WR-TIMEZONE:Europe/Bucharest',
+    // Hint for subscribed calendars: check for changes every 6 hours.
+    'REFRESH-INTERVAL;VALUE=DURATION:PT6H',
+    'X-PUBLISHED-TTL:PT6H',
     ...VTIMEZONE,
   ];
   for (const s of sessions) {
@@ -89,7 +118,7 @@ export function buildCalendar(
     const title = `${s.name}${s.isOptional ? ' (Opt.)' : ''} · ${TYPE_LABEL[s.type]}`;
     lines.push(
       'BEGIN:VEVENT',
-      `UID:${s.id}@psihorar`,
+      `UID:${eventUid(group.yearName, group.name, s)}`,
       `DTSTAMP:${stamp}`,
       `DTSTART;TZID=Europe/Bucharest:${compact(first, s.startTime)}`,
       `DTEND;TZID=Europe/Bucharest:${compact(first, s.endTime)}`,
