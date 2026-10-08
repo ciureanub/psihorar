@@ -213,6 +213,14 @@ function render() {
   }
 }
 
+/** 63 -> "1h3m", 45 -> "45m", 120 -> "2h". */
+function formatCountdown(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${rest}m`;
+  return rest ? `${hours}h${rest}m` : `${hours}h`;
+}
+
 function sessionCard(s, date, now) {
   const start = toMinutes(s.startTime);
   const end = toMinutes(s.endTime);
@@ -224,11 +232,19 @@ function sessionCard(s, date, now) {
     'article',
     { class: `card ${status}` },
     h('div', { class: 'time' }, `${s.startTime}–${s.endTime}`),
-    h('div', { class: 'title' }, s.name, s.isOptional && h('span', { class: 'opt' }, '(Opt.)')),
-    h('div', { class: 'meta' }, h('b', {}, TYPE_LABEL[s.type] ?? s.type), ` · ${PARITY_LABEL[s.weekParity]}`),
+    h('div', { class: 'title' },
+      s.name,
+      h('span', { class: 'kind' }, ` · ${TYPE_LABEL[s.type] ?? s.type}`),
+      s.isOptional && h('span', { class: 'opt' }, '(Opt.)')),
+    h('div', { class: 'meta' }, PARITY_LABEL[s.weekParity]),
     h('div', { class: 'meta' }, 'Prof. coordonator: ', h('b', {}, s.professor)),
     h('div', { class: 'meta' }, 'Sala: ', h('b', {}, s.room)),
-    h('span', { class: 'pill' }, status === 'live' ? `${STATUS_LABEL.live} · încă ${end - now.minutes} min` : STATUS_LABEL[status]),
+    h('span', { class: 'pill' },
+      status === 'live'
+        ? `${STATUS_LABEL.live} · încă ${end - now.minutes} min`
+        : status === 'future' && date === now.date
+          ? `${STATUS_LABEL.future} ${formatCountdown(start - now.minutes)}`
+          : STATUS_LABEL[status]),
     status === 'live' &&
       h('div', { class: 'bar', role: 'presentation' },
         h('i', { style: `width:${Math.round(((now.minutes - start) / (end - start)) * 100)}%` })),
