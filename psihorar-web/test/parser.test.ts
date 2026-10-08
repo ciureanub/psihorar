@@ -71,9 +71,9 @@ describe('workbook import', () => {
     ]);
   });
 
-  it('Grupa I has exactly 20 sessions', () => {
+  it('Grupa I has exactly 17 sessions (three sessions are excluded)', () => {
     const g1 = psih1().groups.find((g) => g.name === 'Grupa I');
-    expect(g1?.sessions).toHaveLength(20);
+    expect(g1?.sessions).toHaveLength(17);
   });
 
   it('vertical merge means weekly, single row means that parity only', () => {
@@ -81,9 +81,12 @@ describe('workbook import', () => {
     const tuesday8 = g1.sessions.find((s) => s.weekday === 2 && s.startTime === '08:00');
     expect(tuesday8).toMatchObject({ name: 'Neuroștiințe', type: 'curs', weekParity: 'all', room: 'D4' });
 
+    // The odd-week course in this slot is on the exclusion list; the even-week one stays.
     const monday10 = g1.sessions.filter((s) => s.weekday === 1 && s.startTime === '10:00');
-    expect(monday10.map((s) => s.weekParity).sort()).toEqual(['even', 'odd']);
+    expect(monday10.map((s) => s.weekParity)).toEqual(['even']);
     expect(monday10.every((s) => s.isOptional)).toBe(true);
+    const tuesday12 = g1.sessions.filter((s) => s.weekday === 2 && s.startTime === '12:00');
+    expect(tuesday12.map((s) => s.weekParity)).toEqual(['odd']);
   });
 
   it('horizontal merge is shared by every covered group', () => {
@@ -137,7 +140,7 @@ describe('workbook import', () => {
   it('diff against an empty database adds everything, and is empty when unchanged', () => {
     const fresh = computeDiff([], wb.years);
     const g1 = fresh.find((d) => d.year === 'An I' && d.group === 'Grupa I');
-    expect(g1?.added).toHaveLength(20);
+    expect(g1?.added).toHaveLength(17);
     expect(g1?.isNewGroup).toBe(true);
 
     const existing = wb.years.flatMap((y) =>

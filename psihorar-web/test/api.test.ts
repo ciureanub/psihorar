@@ -137,11 +137,11 @@ describe('API', () => {
     expect((await publish(res.json().importId)).statusCode).toBe(409);
   });
 
-  it('timetable has 20 sessions for An I Grupa I, with ETag and 304', async () => {
+  it('timetable has 17 sessions for An I Grupa I, with ETag and 304', async () => {
     await importAll();
     const id = await groupId('An I', 'Grupa I');
     const first = await app.inject({ url: `/api/groups/${id}/timetable` });
-    expect(first.json().sessions).toHaveLength(20);
+    expect(first.json().sessions).toHaveLength(17);
     expect(first.json().version).toBe(1);
     const cached = await app.inject({
       url: `/api/groups/${id}/timetable`,
@@ -169,7 +169,7 @@ describe('API', () => {
     const created = await app.inject({ method: 'POST', url: '/api/admin/sessions', headers: auth, payload: body });
     expect(created.statusCode).toBe(201);
     const id = created.json().id as string;
-    expect((await timetable(g1)).sessions).toHaveLength(21);
+    expect((await timetable(g1)).sessions).toHaveLength(18);
 
     const edited = await app.inject({
       method: 'PATCH', url: `/api/admin/sessions/${id}`, headers: auth, payload: { room: 'D1' },
@@ -185,7 +185,7 @@ describe('API', () => {
     expect((await app.inject({ method: 'DELETE', url: `/api/admin/sessions/${id}`, headers: auth })).statusCode).toBe(404);
 
     expect((await timetable(g1)).version).toBe(4);
-    expect((await timetable(g1)).sessions).toHaveLength(20);
+    expect((await timetable(g1)).sessions).toHaveLength(17);
     expect((await timetable(g2)).version).toBe(1);
   });
 
@@ -209,7 +209,7 @@ describe('API', () => {
     });
     app = await open();
     expect((await app.inject({ url: '/api/config' })).json().semesterWeeks).toBe(16);
-    expect((await timetable(g1)).sessions).toHaveLength(20);
+    expect((await timetable(g1)).sessions).toHaveLength(17);
   });
 
   it('exports a calendar with weekly and fortnightly recurrences', async () => {
@@ -218,13 +218,13 @@ describe('API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('text/calendar');
     const ics = res.body.replace(/\r\n /g, '');
-    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(20);
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(17);
     // Weekly: Neuroștiințe, Tuesday 08:00, first occurrence in week 1.
     expect(ics).toContain('DTSTART;TZID=Europe/Bucharest:20260929T080000\r\nDTEND;TZID=Europe/Bucharest:20260929T100000\r\nRRULE:FREQ=WEEKLY;INTERVAL=1;UNTIL=20270214T215959Z');
     // Even weeks only: Monday 10:00, first occurrence in week 2.
     expect(ics).toContain('DTSTART;TZID=Europe/Bucharest:20261005T100000\r\nDTEND;TZID=Europe/Bucharest:20261005T120000\r\nRRULE:FREQ=WEEKLY;INTERVAL=2;');
-    // Odd weeks only: Monday 10:00, first occurrence in week 1.
-    expect(ics).toContain('DTSTART;TZID=Europe/Bucharest:20260928T100000\r\nDTEND;TZID=Europe/Bucharest:20260928T120000\r\nRRULE:FREQ=WEEKLY;INTERVAL=2;');
+    // Odd weeks only: Tuesday 12:00, first occurrence in week 1.
+    expect(ics).toContain('DTSTART;TZID=Europe/Bucharest:20260929T120000\r\nDTEND;TZID=Europe/Bucharest:20260929T140000\r\nRRULE:FREQ=WEEKLY;INTERVAL=2;');
     expect(res.body.split('\r\n').every((line) => Buffer.byteLength(line) <= 75)).toBe(true);
   });
 

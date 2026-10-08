@@ -49,6 +49,7 @@ Pe Windows (PowerShell): `$env:ADMIN_EMAIL="..."; $env:ADMIN_PASSWORD="..."; npm
 | `src/ics.ts` | exportul de calendar |
 | `src/auth.ts` | parolă (scrypt) și sesiune de administrator |
 | `public/` | pagina: `index.html`, `styles.css`, `app.js` |
+| `src/exclusions.ts` | orele scoase din orar la cerere; importul le ignoră |
 | `test/` | 32 de teste (`npm test`) |
 
 ## Reguli
