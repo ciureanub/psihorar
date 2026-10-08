@@ -14,12 +14,12 @@ const FIXTURE = fileURLToPath(new URL('../data/PSIH.xlsx', import.meta.url));
 describe('parseCell', () => {
   it('keeps commas inside the name and inside the room', () => {
     const cell = parseCell(
-      'Comunicare, fake news şi rezilienţă la dezinformare (Op), S, Spec. Raileanu-Olariu Teodor, corp E, P3',
+      'Etică, deontologie şi practică profesională (Op), S, Lect.Dr. Exemplu Test, corp E, P3',
     );
     expect(cell).toEqual({
-      name: 'Comunicare, fake news şi rezilienţă la dezinformare',
+      name: 'Etică, deontologie şi practică profesională',
       type: 'seminar',
-      professor: 'Spec. Raileanu-Olariu Teodor',
+      professor: 'Lect.Dr. Exemplu Test',
       room: 'corp E, P3',
       isOptional: true,
     });
@@ -71,9 +71,9 @@ describe('workbook import', () => {
     ]);
   });
 
-  it('Grupa I has exactly 17 sessions (three sessions are excluded)', () => {
+  it('Grupa I has exactly 16 sessions (four sessions are excluded)', () => {
     const g1 = psih1().groups.find((g) => g.name === 'Grupa I');
-    expect(g1?.sessions).toHaveLength(17);
+    expect(g1?.sessions).toHaveLength(16);
   });
 
   it('vertical merge means weekly, single row means that parity only', () => {
@@ -118,6 +118,11 @@ describe('workbook import', () => {
     });
   });
 
+  it('excluded disciplines appear in no group, as curs or seminar', () => {
+    const all = wb.years.flatMap((y) => y.groups.flatMap((g) => g.sessions));
+    expect(all.filter((s) => /autocunoa|fake news/i.test(s.name))).toEqual([]);
+  });
+
   it('PSIH 1 has no unparseable cells', () => {
     expect(wb.errors.filter((e) => e.sheet === 'PSIH 1')).toEqual([]);
   });
@@ -140,7 +145,7 @@ describe('workbook import', () => {
   it('diff against an empty database adds everything, and is empty when unchanged', () => {
     const fresh = computeDiff([], wb.years);
     const g1 = fresh.find((d) => d.year === 'An I' && d.group === 'Grupa I');
-    expect(g1?.added).toHaveLength(17);
+    expect(g1?.added).toHaveLength(16);
     expect(g1?.isNewGroup).toBe(true);
 
     const existing = wb.years.flatMap((y) =>

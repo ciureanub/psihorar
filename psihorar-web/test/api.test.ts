@@ -137,11 +137,11 @@ describe('API', () => {
     expect((await publish(res.json().importId)).statusCode).toBe(409);
   });
 
-  it('timetable has 17 sessions for An I Grupa I, with ETag and 304', async () => {
+  it('timetable has 16 sessions for An I Grupa I, with ETag and 304', async () => {
     await importAll();
     const id = await groupId('An I', 'Grupa I');
     const first = await app.inject({ url: `/api/groups/${id}/timetable` });
-    expect(first.json().sessions).toHaveLength(17);
+    expect(first.json().sessions).toHaveLength(16);
     expect(first.json().version).toBe(1);
     const cached = await app.inject({
       url: `/api/groups/${id}/timetable`,
@@ -169,7 +169,7 @@ describe('API', () => {
     const created = await app.inject({ method: 'POST', url: '/api/admin/sessions', headers: auth, payload: body });
     expect(created.statusCode).toBe(201);
     const id = created.json().id as string;
-    expect((await timetable(g1)).sessions).toHaveLength(18);
+    expect((await timetable(g1)).sessions).toHaveLength(17);
 
     const edited = await app.inject({
       method: 'PATCH', url: `/api/admin/sessions/${id}`, headers: auth, payload: { room: 'D1' },
@@ -185,7 +185,7 @@ describe('API', () => {
     expect((await app.inject({ method: 'DELETE', url: `/api/admin/sessions/${id}`, headers: auth })).statusCode).toBe(404);
 
     expect((await timetable(g1)).version).toBe(4);
-    expect((await timetable(g1)).sessions).toHaveLength(17);
+    expect((await timetable(g1)).sessions).toHaveLength(16);
     expect((await timetable(g2)).version).toBe(1);
   });
 
@@ -209,7 +209,7 @@ describe('API', () => {
     });
     app = await open();
     expect((await app.inject({ url: '/api/config' })).json().semesterWeeks).toBe(16);
-    expect((await timetable(g1)).sessions).toHaveLength(17);
+    expect((await timetable(g1)).sessions).toHaveLength(16);
   });
 
   it('exports a calendar with weekly and fortnightly recurrences', async () => {
@@ -218,7 +218,7 @@ describe('API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('text/calendar');
     const ics = res.body.replace(/\r\n /g, '');
-    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(17);
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(16);
     // Weekly: Neuroștiințe, Tuesday 08:00, first occurrence in week 1.
     expect(ics).toContain('DTSTART;TZID=Europe/Bucharest:20260929T080000\r\nDTEND;TZID=Europe/Bucharest:20260929T100000\r\nRRULE:FREQ=WEEKLY;INTERVAL=1;UNTIL=20270214T215959Z');
     // Even weeks only: Monday 10:00, first occurrence in week 2.
@@ -257,8 +257,25 @@ describe('API', () => {
     auth = { authorization: `Bearer ${login.json().token}` };
     await importAll();
     const second = uids((await app.inject({ url: '/api/calendar/an-i/grupa-i.ics' })).body);
-    expect(first).toHaveLength(17);
+    expect(first).toHaveLength(16);
     expect(second).toEqual(first);
+  });
+
+  it('purges excluded sessions that were saved before the exclusion existed', async () => {
+    await importAll();
+    const g1 = await groupId('An I', 'Grupa I');
+    const old = {
+      groupId: g1, weekday: 5, startTime: '08:00', endTime: '10:00',
+      name: 'Comunicare, fake news şi rezilienţă la dezinformare', type: 'curs',
+      professor: 'Prof. Test', room: 'D301', weekParity: 'even', isOptional: true,
+    };
+    expect((await app.inject({ method: 'POST', url: '/api/admin/sessions', headers: auth, payload: old })).statusCode).toBe(201);
+    expect((await timetable(g1)).sessions).toHaveLength(17);
+    const store = await Store.open(persistence);
+    const { isExcluded } = await import('../src/exclusions.js');
+    expect(await store.purge(isExcluded)).toBe(1);
+    expect(await store.purge(isExcluded)).toBe(0);
+    expect(store.listSessions(g1).some((s) => /fake news/i.test(s.name))).toBe(false);
   });
 
   it('rejects malformed input', async () => {

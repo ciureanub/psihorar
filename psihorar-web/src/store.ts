@@ -223,6 +223,19 @@ export class Store {
     return true;
   }
 
+  /**
+   * Deletes stored sessions that match `predicate` (used at start-up for the
+   * exclusion list, so data saved before an exclusion was added is cleaned too).
+   */
+  async purge(predicate: (s: Session) => boolean): Promise<number> {
+    const doomed = this.state.sessions.filter(predicate);
+    if (!doomed.length) return 0;
+    this.state.sessions = this.state.sessions.filter((s) => !predicate(s));
+    for (const groupId of new Set(doomed.map((s) => s.groupId))) this.bump(groupId);
+    await this.persist();
+    return doomed.length;
+  }
+
   createImport(job: Omit<ImportJob, 'id' | 'published'>): ImportJob {
     const full: ImportJob = { ...job, id: randomUUID(), published: false };
     this.imports.set(full.id, full);

@@ -154,7 +154,7 @@ describe('API', () => {
     const first = await app.inject({ url: `/v1/groups/${id}/timetable` });
     expect(first.statusCode).toBe(200);
     expect(first.json().version).toBe(1);
-    expect(first.json().sessions).toHaveLength(20);
+    expect(first.json().sessions).toHaveLength(16);
     const etag = first.headers.etag as string;
     expect(etag).toBeTruthy();
 

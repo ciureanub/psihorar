@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { isExcluded } from './exclusions.js';
 
 export type SessionType = 'curs' | 'seminar' | 'practica';
 export type WeekParity = 'all' | 'odd' | 'even';
@@ -344,6 +345,7 @@ function parseSheet(ws: ExcelJS.Worksheet, errors: ImportError[]): ParsedYear | 
       }
       return;
     }
+    if (isExcluded(parsed)) return;
     byGroup.get(groupName)?.push({
       weekday: Number(wd),
       weekParity,

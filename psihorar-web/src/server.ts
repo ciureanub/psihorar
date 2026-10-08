@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { buildApp } from './app.js';
 import { hashPassword } from './auth.js';
+import { isExcluded } from './exclusions.js';
 import { parseWorkbook } from './parser.js';
 import { FilePersistence, PgPersistence, Store } from './store.js';
 
@@ -32,6 +33,10 @@ if (store.isEmpty()) {
     console.warn('No bundled timetable loaded:', (err as Error).message);
   }
 }
+
+// Data saved before a session was put on the exclusion list is cleaned here.
+const purged = await store.purge(isExcluded);
+if (purged) console.log(`Removed ${purged} excluded sessions from stored data`);
 
 // Admin credentials come from Secrets / environment, never from the source code.
 const adminEmail = env('ADMIN_EMAIL');
