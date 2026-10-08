@@ -55,6 +55,8 @@ const state = {
   parity: null, // null = follow the current week
   token: null,
   scrolledToToday: false,
+  openDays: new Set(), // past days the user expanded, by date
+  stacked: null, // last seen layout: days in one column?
 };
 
 // ---------- Time, in the faculty's timezone regardless of the device ----------
@@ -189,7 +191,6 @@ function render() {
   const now = nowParts();
   const week = weekNumber(now.date, state.config.semesterStart);
   const currentParity = parityOf(week);
-  const parity = state.parity ?? currentParity;
   const inSemester = week >= 1 && week <= state.config.semesterWeeks;
 
   $('clockDate').textContent = formatDate(now.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -198,15 +199,27 @@ function render() {
     ? `Săptămâna ${week} · ${currentParity === 'odd' ? 'impară' : 'pară'}`
     : 'În afara semestrului';
 
+  // On Saturday and Sunday the week is over: show next week by default.
+  const weekend = dayNumber(now.date) - dayNumber(mondayOf(now.date)) >= 5;
+  const baseMonday = addDays(mondayOf(now.date), weekend ? 7 : 0);
+  const baseParity = parityOf(weekNumber(baseMonday, state.config.semesterStart));
+  const parity = state.parity ?? baseParity;
+
   $('parityOdd').setAttribute('aria-pressed', String(parity === 'odd'));
   $('parityEven').setAttribute('aria-pressed', String(parity === 'even'));
 
-  // The other parity means next week.
-  const monday = addDays(mondayOf(now.date), parity === currentParity ? 0 : 7);
+  // The other parity means the week after.
+  const monday = addDays(baseMonday, parity === baseParity ? 0 : 7);
   const shownWeek = weekNumber(monday, state.config.semesterStart);
   $('rangeTitle').textContent =
     `${formatDate(monday, { day: 'numeric', month: 'long' })} – ${formatDate(addDays(monday, 4), { day: 'numeric', month: 'long' })}` +
-    ` · săptămâna ${shownWeek}, ${parity === 'odd' ? 'impară' : 'pară'}`;
+    ` · săptămâna ${shownWeek}, ${parity === 'odd' ? 'impară' : 'pară'}` +
+    (weekend && monday === baseMonday ? ' · săptămâna viitoare' : '');
+
+  // Where the days stack in one column (phones, narrow tablets, narrow
+  // windows), days already over collapse to their name.
+  const stacked = isStacked();
+  state.stacked = stacked;
 
   const sessions = state.timetable?.sessions ?? [];
   const columns = DAY_NAMES.map((name, index) => {
@@ -215,6 +228,28 @@ function render() {
     const cards = sessions
       .filter((s) => s.weekday === index + 1 && (s.weekParity === 'all' || s.weekParity === parity))
       .map((s) => sessionCard(s, date, now));
+    if (stacked && date < now.date) {
+      const open = state.openDays.has(date);
+      return h(
+        'div',
+        { class: `day past-day${open ? ' open' : ''}` },
+        h('button', {
+          type: 'button',
+          class: 'day-toggle',
+          'aria-expanded': String(open),
+          'aria-label': `${name}, zi încheiată, ${cards.length} ${cards.length === 1 ? 'oră' : 'ore'}`,
+          onclick: () => {
+            if (state.openDays.has(date)) state.openDays.delete(date);
+            else state.openDays.add(date);
+            render();
+          },
+        },
+          h('span', { class: 'name' }, name),
+          h('span', { class: 'chev', 'aria-hidden': 'true' }),
+        ),
+        open && (cards.length ? cards : h('div', { class: 'empty' }, 'Nicio oră.')),
+      );
+    }
     return h(
       'div',
       { class: `day${isToday ? ' today' : ''}` },
@@ -227,11 +262,41 @@ function render() {
   });
   $('week').replaceChildren(...columns);
 
-  // On a phone the days stack: bring today into view once.
-  if (!state.scrolledToToday && state.timetable && window.matchMedia('(max-width: 640px)').matches) {
+  // Anchor on "now": the class in progress, else the next one today, else the
+  // last one that ended today. Marked on every refresh, scrolled to only once
+  // per load (or on "Acum"), so it never fights the user's own scrolling.
+  const todayCards = [...document.querySelectorAll('.day.today .card')];
+  const focus =
+    todayCards.find((c) => c.dataset.status === 'live') ??
+    todayCards.find((c) => c.dataset.status === 'future') ??
+    todayCards.at(-1) ??
+    document.getElementById('today');
+  focus?.classList.add('focus');
+  if (!state.scrolledToToday && state.timetable) {
     state.scrolledToToday = true;
-    document.getElementById('today')?.scrollIntoView({ block: 'start' });
+    if (focus) {
+      const phone = stacked;
+      // Two frames: let fonts and layout settle before measuring.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        // On a phone, keep the day name in sight when the class is the day's first.
+        const target = phone && focus === todayCards[0] ? document.getElementById('today') : focus;
+        target.scrollIntoView({ block: phone && target !== focus ? 'start' : 'center', behavior: 'auto' });
+      }));
+    }
   }
+}
+
+/** True when the week grid shows a single column. */
+function isStacked() {
+  const columns = getComputedStyle($('week')).gridTemplateColumns.trim().split(/\s+/).filter(Boolean);
+  return columns.length <= 1;
+}
+
+/** "Acum": back to the current week and to the current class. */
+function jumpToNow() {
+  state.parity = null;
+  state.scrolledToToday = false;
+  render();
 }
 
 /** 63 -> "1h3m", 45 -> "45m", 120 -> "2h". */
@@ -251,7 +316,7 @@ function sessionCard(s, date, now) {
 
   return h(
     'article',
-    { class: `card ${status}` },
+    { class: `card ${status}`, 'data-status': status },
     h('div', { class: 'time' }, `${s.startTime}–${s.endTime}`),
     h('div', { class: 'title' },
       s.name,
@@ -489,6 +554,15 @@ document.addEventListener('click', (event) => {
 });
 $('parityOdd').addEventListener('click', () => { state.parity = 'odd'; render(); });
 $('parityEven').addEventListener('click', () => { state.parity = 'even'; render(); });
+$('jumpNow').addEventListener('click', jumpToNow);
+// Rotation or resizing can switch between stacked and side-by-side days.
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (state.stacked !== null && isStacked() !== state.stacked) render();
+  }, 150);
+});
 
 $('adminButton').addEventListener('click', () => {
   if (state.token) {

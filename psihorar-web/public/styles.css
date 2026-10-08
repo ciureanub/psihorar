@@ -120,14 +120,30 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--gold); }
 .notice { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; color: var(--muted); }
 
 .week { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; align-items: start; }
+@media (max-width: 820px) { .week { grid-template-columns: minmax(0, 1fr); } }
 .day { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .day-head { display: flex; align-items: baseline; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--card); scroll-margin-top: 12px; }
 .day-head .num { font-size: 20px; font-weight: 700; }
 .day-head .name { font-weight: 600; }
+.day-toggle {
+  width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: #0F1930; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; text-align: left;
+}
+.day-toggle:hover { color: var(--text); }
+.day-toggle .chev {
+  width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg); margin-right: 4px;
+}
+.day.open .day-toggle .chev { transform: rotate(45deg); }
+@media (prefers-reduced-motion: no-preference) { .day-toggle .chev { transition: transform .15s ease; } }
 .day.today .day-head { background: var(--gold); color: #0B1426; }
 .empty { color: var(--muted); font-size: 13px; padding: 4px 12px; }
 
 .card { border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 5px; border: 1px solid; }
+.card { scroll-margin: 16px; }
+.card.focus { box-shadow: 0 0 0 2px var(--gold); }
+.card.focus.past { box-shadow: 0 0 0 1px var(--line-strong); }
 .card .time { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .card .title { font-size: 15px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
 .card .title .opt { margin-left: 6px; }
