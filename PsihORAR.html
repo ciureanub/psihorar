@@ -135,6 +135,37 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--gold); }
 .optional-legend { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; }
 .optional-legend b { color: var(--gold); font-weight: 700; }
 
+.picker { position: relative; }
+.icon-btn { width: 44px; padding: 0; }
+.icon-btn svg { width: 22px; height: 22px; }
+.picker-panel {
+  position: absolute; z-index: 6; top: calc(100% + 8px); right: 0;
+  width: 320px; max-width: calc(100vw - 32px);
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 14px; padding: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45); display: flex; flex-direction: column; gap: 10px;
+}
+.picker-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.picker-title { font-weight: 700; text-transform: capitalize; }
+.chev-btn.small { width: 36px; height: 36px; }
+.picker-grid { display: grid; grid-template-columns: 34px repeat(7, minmax(0, 1fr)); gap: 3px; }
+.picker-dow { font-size: 11px; color: var(--muted); text-align: center; padding: 2px 0; }
+.picker-week { font-size: 10px; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; border-radius: 6px; }
+.picker-week b { color: var(--gold); font-size: 11px; }
+.picker-day {
+  height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text);
+  font: inherit; font-size: 14px; cursor: pointer;
+}
+.picker-day:hover { background: var(--card); }
+.picker-day.weekend { color: var(--muted); }
+.picker-day.other-month { color: #56617A; }
+.picker-day.in-week, .picker-week.in-week { background: #22314F; }
+.picker-day[aria-current="date"] { box-shadow: inset 0 0 0 2px var(--gold); font-weight: 700; }
+.picker-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.picker-foot .hint { margin: 0; font-size: 11px; }
+@media (max-width: 640px) {
+  .picker-panel { position: fixed; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); width: auto; max-width: none; }
+}
+
 .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 18px 0 6px; font-size: 13px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -144,6 +175,16 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--gold); }
 .opt { font-size: 11px; font-weight: 700; color: var(--gold); border: 1px solid var(--gold); border-radius: 6px; padding: 0 5px; white-space: nowrap; }
 
 .range { margin: 14px 0 12px; }
+.week-nav { display: flex; align-items: center; gap: 12px; margin: 14px 0 12px; }
+.week-nav .range { margin: 0; flex: 1; min-width: 0; text-align: center; }
+.chev-btn {
+  flex: none; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line-strong);
+  background: var(--card); color: var(--gold); display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.chev-btn svg { width: 20px; height: 20px; }
+.chev-btn:hover:not(:disabled) { border-color: var(--gold); }
+.chev-btn:disabled { opacity: .35; cursor: default; }
+@media (max-width: 640px) { .week-nav .range { font-size: 21px; } }
 .notice { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; color: var(--muted); }
 
 .week { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; align-items: start; }
@@ -275,6 +316,27 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
     </div>
     <button type="button" class="btn quiet" id="jumpNow">Acum</button>
     <a class="btn ghost" id="calendarLink" href="#" download="psihorar.ics">Descarcă calendarul (.ics)</a>
+    <div class="picker" id="pickerBox">
+      <button type="button" class="btn ghost icon-btn" id="pickerButton" aria-haspopup="dialog" aria-expanded="false" aria-controls="pickerPanel" aria-label="Alege o zi din calendar" title="Alege o zi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/></svg>
+      </button>
+      <div class="picker-panel" id="pickerPanel" role="dialog" aria-label="Alege o zi" hidden>
+        <div class="picker-head">
+          <button type="button" class="chev-btn small" id="pickerPrev" aria-label="Luna anterioară">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <div class="picker-title" id="pickerTitle" aria-live="polite"></div>
+          <button type="button" class="chev-btn small" id="pickerNext" aria-label="Luna următoare">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <div class="picker-grid" id="pickerGrid"></div>
+        <div class="picker-foot">
+          <span class="hint">S = săptămâna semestrului · I / P = impară / pară</span>
+          <button type="button" class="btn quiet" id="pickerToday">Azi</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="optionals" id="optionals" hidden aria-labelledby="optionalsTitle">
@@ -290,7 +352,15 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
     <span><b class="opt">(Opt.)</b>Disciplină opțională</span>
   </div>
 
-  <h2 class="range" id="rangeTitle"></h2>
+  <div class="week-nav">
+    <button type="button" class="chev-btn" id="weekPrev" aria-label="Săptămâna anterioară">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h2 class="range" id="rangeTitle" aria-live="polite"></h2>
+    <button type="button" class="chev-btn" id="weekNext" aria-label="Săptămâna următoare">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </div>
   <p class="notice" id="notice" hidden></p>
   <section class="week" id="week" aria-label="Orar săptămânal"></section>
 
@@ -421,6 +491,10 @@ const state = {
   token: null,
   scrolledToToday: false,
   openDays: new Set(), // past days the user expanded, by date
+  shownMonday: null, // Monday of the week on screen
+  pickedDate: null,
+  pickerMonth: null, // 'YYYY-MM' shown in the date picker
+  weekOffset: 0, // weeks from the default week, moved by the arrows
   optionalPrefs: loadOptionalPrefs(), // { AMPAC: false, TAA: true, ... } as the student set them
   stacked: null, // last seen layout: days in one column?
 };
@@ -811,20 +885,31 @@ function render() {
 
   // On Saturday and Sunday the week is over: show next week by default.
   const weekend = dayNumber(now.date) - dayNumber(mondayOf(now.date)) >= 5;
-  const baseMonday = addDays(mondayOf(now.date), weekend ? 7 : 0);
-  const baseParity = parityOf(weekNumber(baseMonday, state.config.semesterStart));
-  const parity = state.parity ?? baseParity;
+  const baseMonday = defaultMonday(now);
+  const baseWeek = weekNumber(baseMonday, state.config.semesterStart);
+  const monday = addDays(baseMonday, state.weekOffset * 7);
+  const shownWeek = baseWeek + state.weekOffset;
+  const parity = parityOf(shownWeek);
+  state.shownMonday = monday;
+  renderPicker();
 
   $('parityOdd').setAttribute('aria-pressed', String(parity === 'odd'));
   $('parityEven').setAttribute('aria-pressed', String(parity === 'even'));
-
-  // The other parity means the week after.
-  const monday = addDays(baseMonday, parity === baseParity ? 0 : 7);
-  const shownWeek = weekNumber(monday, state.config.semesterStart);
+  $('weekPrev').disabled = shownWeek <= 1;
+  $('weekPrev').setAttribute('aria-label', shownWeek <= 1 ? 'Săptămâna anterioară (aceasta este prima săptămână)' : `Săptămâna anterioară: ${shownWeek - 1}`);
+  $('weekNext').setAttribute('aria-label', `Săptămâna următoare: ${shownWeek + 1}`);
   $('rangeTitle').textContent =
     `${formatDate(monday, { day: 'numeric', month: 'long' })} – ${formatDate(addDays(monday, 4), { day: 'numeric', month: 'long' })}` +
-    ` · săptămâna ${shownWeek}, ${parity === 'odd' ? 'impară' : 'pară'}` +
+    ` · ${
+      shownWeek < 1
+        ? 'înainte de semestru'
+        : shownWeek > state.config.semesterWeeks
+          ? `după semestru, săptămâna ${shownWeek}`
+          : `săptămâna ${shownWeek}`
+    }, ${parity === 'odd' ? 'impară' : 'pară'}` +
     (weekend && monday === baseMonday ? ' · săptămâna viitoare' : '');
+  // Collapse only in the week being lived now (on a weekend that week is over).
+  const isCurrentWeek = !weekend && monday === mondayOf(now.date);
 
   // Where the days stack in one column (phones, narrow tablets, narrow
   // windows), days already over collapse to their name.
@@ -838,11 +923,11 @@ function render() {
     const cards = sessions
       .filter((s) => s.weekday === index + 1 && (s.weekParity === 'all' || s.weekParity === parity))
       .map((s) => sessionCard(s, date, now));
-    if (stacked && date < now.date) {
+    if (stacked && isCurrentWeek && date < now.date) {
       const open = state.openDays.has(date);
       return h(
         'div',
-        { class: `day past-day${open ? ' open' : ''}` },
+        { class: `day past-day${open ? ' open' : ''}`, 'data-date': date },
         h('button', {
           type: 'button',
           class: 'day-toggle',
@@ -862,7 +947,7 @@ function render() {
     }
     return h(
       'div',
-      { class: `day${isToday ? ' today' : ''}` },
+      { class: `day${isToday ? ' today' : ''}`, 'data-date': date },
       h('div', { class: 'day-head', id: isToday ? 'today' : null },
         h('span', { class: 'num' }, formatDate(date, { day: 'numeric' })),
         h('span', { class: 'name' }, name),
@@ -904,11 +989,105 @@ function isStacked() {
 
 /** "Acum": back to the current week and to the current class. */
 function jumpToNow() {
-  state.parity = null;
+  state.weekOffset = 0;
+  state.pickedDate = null;
   state.scrolledToToday = false;
   render();
 }
 
+/** Monday of the week shown by default: this week, or next week on Saturday and Sunday. */
+function defaultMonday(now = nowParts()) {
+  const weekend = dayNumber(now.date) - dayNumber(mondayOf(now.date)) >= 5;
+  return addDays(mondayOf(now.date), weekend ? 7 : 0);
+}
+
+// ---------- Date picker ----------
+
+const MONTHS = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
+
+/** Shows the week that contains `dateISO` (any date, inside the semester or not), without scrolling. */
+function showWeekOf(dateISO) {
+  state.weekOffset = Math.round((dayNumber(mondayOf(dateISO)) - dayNumber(defaultMonday())) / 7);
+  state.pickedDate = dateISO;
+  // Only the week changes; the page stays where it is and the user scrolls.
+  render();
+}
+
+function openPicker() {
+  state.pickerMonth = (state.shownMonday ?? defaultMonday()).slice(0, 7);
+  $('pickerPanel').hidden = false;
+  $('pickerButton').setAttribute('aria-expanded', 'true');
+  renderPicker();
+  // Opens towards the left of the button; flips to the right if that would leave the screen.
+  const panel = $('pickerPanel');
+  panel.style.left = '';
+  panel.style.right = '';
+  if (!window.matchMedia('(max-width: 640px)').matches && panel.getBoundingClientRect().left < 8) {
+    panel.style.left = '0';
+    panel.style.right = 'auto';
+  }
+  const grid = $('pickerGrid');
+  (grid.querySelector('button[aria-current="date"]') ?? grid.querySelector('button.in-week') ?? grid.querySelector('button'))?.focus();
+}
+
+function closePicker(returnFocus = true) {
+  if ($('pickerPanel').hidden) return;
+  $('pickerPanel').hidden = true;
+  $('pickerButton').setAttribute('aria-expanded', 'false');
+  if (returnFocus) $('pickerButton').focus();
+}
+
+function movePickerMonth(delta) {
+  const [y, m] = state.pickerMonth.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  state.pickerMonth = d.toISOString().slice(0, 7);
+  renderPicker();
+}
+
+function renderPicker() {
+  if ($('pickerPanel').hidden) return;
+  const now = nowParts();
+  const [y, m] = state.pickerMonth.split('-').map(Number);
+  $('pickerTitle').textContent = `${MONTHS[m - 1]} ${y}`;
+  const first = `${state.pickerMonth}-01`;
+  const start = mondayOf(first);
+  const shown = state.shownMonday;
+  const head = ['', 'L', 'Ma', 'Mi', 'J', 'V', 'S', 'D'].map((d) => h('span', { class: 'picker-dow', 'aria-hidden': 'true' }, d));
+  const cells = [];
+  for (let row = 0; row < 6; row++) {
+    const rowMonday = addDays(start, row * 7);
+    if (row > 0 && rowMonday.slice(0, 7) !== state.pickerMonth) break;
+    const week = weekNumber(rowMonday, state.config.semesterStart);
+    const par = parityOf(week) === 'odd' ? 'I' : 'P';
+    cells.push(h('span', { class: `picker-week${rowMonday === shown ? ' in-week' : ''}`, title: week >= 1 ? `Săptămâna ${week}, ${par === 'I' ? 'impară' : 'pară'}` : (par === 'I' ? 'Impară' : 'Pară') },
+      week >= 1 ? `S${week}` : '', h('b', {}, par)));
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(rowMonday, i);
+      const classes = ['picker-day'];
+      if (date.slice(0, 7) !== state.pickerMonth) classes.push('other-month');
+      if (i >= 5) classes.push('weekend');
+      if (rowMonday === shown) classes.push('in-week');
+      cells.push(h('button', {
+        type: 'button',
+        class: classes.join(' '),
+        'aria-current': date === now.date ? 'date' : null,
+        'aria-label': `${formatDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${week >= 1 ? `săptămâna ${week}, ` : ''}${par === 'I' ? 'impară' : 'pară'}`,
+        onclick: () => {
+          closePicker(false);
+          showWeekOf(date);
+        },
+      }, String(Number(date.slice(8, 10)))));
+    }
+  }
+  $('pickerGrid').replaceChildren(...head, ...cells);
+}
+
+/** Impară / Pară: the default week if it has that parity, otherwise the week after. */
+function showParity(wanted) {
+  const baseWeek = weekNumber(defaultMonday(), state.config.semesterStart);
+  state.weekOffset = parityOf(baseWeek) === wanted ? 0 : 1;
+  render();
+}
 /** 63 -> "1h3m", 45 -> "45m", 120 -> "2h". */
 function formatCountdown(minutes) {
   const hours = Math.floor(minutes / 60);
@@ -1094,8 +1273,27 @@ $('yearSelect').addEventListener('change', (e) => {
   if (year?.groups[0]) selectGroup(year.groups[0].id);
 });
 $('groupSelect').addEventListener('change', (e) => selectGroup(e.target.value));
-$('parityOdd').addEventListener('click', () => { state.parity = 'odd'; render(); });
-$('parityEven').addEventListener('click', () => { state.parity = 'even'; render(); });
+$('parityOdd').addEventListener('click', () => showParity('odd'));
+$('parityEven').addEventListener('click', () => showParity('even'));
+// The arrow stops at week 1; the date picker can still show any week.
+$('weekPrev').addEventListener('click', () => {
+  if (weekNumber(state.shownMonday, state.config.semesterStart) > 1) state.weekOffset -= 1;
+  render();
+});
+$('pickerButton').addEventListener('click', () => ($('pickerPanel').hidden ? openPicker() : closePicker()));
+$('pickerPrev').addEventListener('click', () => movePickerMonth(-1));
+$('pickerNext').addEventListener('click', () => movePickerMonth(1));
+$('pickerToday').addEventListener('click', () => {
+  closePicker(false);
+  showWeekOf(nowParts().date);
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closePicker();
+});
+document.addEventListener('click', (event) => {
+  if (!$('pickerBox').contains(event.target)) closePicker(false);
+});
+$('weekNext').addEventListener('click', () => { state.weekOffset += 1; render(); });
 $('jumpNow').addEventListener('click', jumpToNow);
 // Rotation or resizing can switch between stacked and side-by-side days.
 let resizeTimer = null;
@@ -1148,7 +1346,7 @@ $('settingsForm').addEventListener('submit', async (event) => {
       body: { semesterStart: $('semesterStart').value, semesterWeeks: Number($('semesterWeeks').value) },
     });
     state.config = { ...state.config, ...saved };
-    state.parity = null;
+    state.weekOffset = 0;
     renderSettingsInfo();
     render();
     setStatus('Setările au fost salvate.');
@@ -1178,7 +1376,7 @@ $('importData').addEventListener('change', async (event) => {
     if (!confirm('Înlocuiești tot orarul din acest browser cu cel din fișier?')) return;
     db = parsed;
     saveDb();
-    state.parity = null;
+    state.weekOffset = 0;
     await bootstrap(true);
     showAdmin(true);
     setStatus('Datele au fost importate.');
@@ -1191,7 +1389,7 @@ $('resetData').addEventListener('click', async () => {
   if (!confirm('Renunți la toate modificările și revii la orarul inițial din fișier?')) return;
   db = JSON.parse(JSON.stringify(SEED));
   saveDb();
-  state.parity = null;
+  state.weekOffset = 0;
   await bootstrap(true);
   showAdmin(true);
   setStatus('Orarul inițial a fost restaurat.');

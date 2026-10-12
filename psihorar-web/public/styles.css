@@ -124,6 +124,37 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--gold); }
 .optional-legend { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; }
 .optional-legend b { color: var(--gold); font-weight: 700; }
 
+.picker { position: relative; }
+.icon-btn { width: 44px; padding: 0; }
+.icon-btn svg { width: 22px; height: 22px; }
+.picker-panel {
+  position: absolute; z-index: 6; top: calc(100% + 8px); right: 0;
+  width: 320px; max-width: calc(100vw - 32px);
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 14px; padding: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45); display: flex; flex-direction: column; gap: 10px;
+}
+.picker-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.picker-title { font-weight: 700; text-transform: capitalize; }
+.chev-btn.small { width: 36px; height: 36px; }
+.picker-grid { display: grid; grid-template-columns: 34px repeat(7, minmax(0, 1fr)); gap: 3px; }
+.picker-dow { font-size: 11px; color: var(--muted); text-align: center; padding: 2px 0; }
+.picker-week { font-size: 10px; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; border-radius: 6px; }
+.picker-week b { color: var(--gold); font-size: 11px; }
+.picker-day {
+  height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text);
+  font: inherit; font-size: 14px; cursor: pointer;
+}
+.picker-day:hover { background: var(--card); }
+.picker-day.weekend { color: var(--muted); }
+.picker-day.other-month { color: #56617A; }
+.picker-day.in-week, .picker-week.in-week { background: #22314F; }
+.picker-day[aria-current="date"] { box-shadow: inset 0 0 0 2px var(--gold); font-weight: 700; }
+.picker-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.picker-foot .hint { margin: 0; font-size: 11px; }
+@media (max-width: 640px) {
+  .picker-panel { position: fixed; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); width: auto; max-width: none; }
+}
+
 .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 18px 0 6px; font-size: 13px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -133,6 +164,16 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--gold); }
 .opt { font-size: 11px; font-weight: 700; color: var(--gold); border: 1px solid var(--gold); border-radius: 6px; padding: 0 5px; white-space: nowrap; }
 
 .range { margin: 14px 0 12px; }
+.week-nav { display: flex; align-items: center; gap: 12px; margin: 14px 0 12px; }
+.week-nav .range { margin: 0; flex: 1; min-width: 0; text-align: center; }
+.chev-btn {
+  flex: none; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line-strong);
+  background: var(--card); color: var(--gold); display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.chev-btn svg { width: 20px; height: 20px; }
+.chev-btn:hover:not(:disabled) { border-color: var(--gold); }
+.chev-btn:disabled { opacity: .35; cursor: default; }
+@media (max-width: 640px) { .week-nav .range { font-size: 21px; } }
 .notice { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; color: var(--muted); }
 
 .week { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; align-items: start; }

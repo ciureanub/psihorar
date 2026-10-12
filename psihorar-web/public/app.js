@@ -56,6 +56,10 @@ const state = {
   token: null,
   scrolledToToday: false,
   openDays: new Set(), // past days the user expanded, by date
+  shownMonday: null, // Monday of the week on screen
+  pickedDate: null,
+  pickerMonth: null, // 'YYYY-MM' shown in the date picker
+  weekOffset: 0, // weeks from the default week, moved by the arrows
   optionalPrefs: loadOptionalPrefs(), // { AMPAC: false, TAA: true, ... } as the student set them
   stacked: null, // last seen layout: days in one column?
 };
@@ -270,20 +274,31 @@ function render() {
 
   // On Saturday and Sunday the week is over: show next week by default.
   const weekend = dayNumber(now.date) - dayNumber(mondayOf(now.date)) >= 5;
-  const baseMonday = addDays(mondayOf(now.date), weekend ? 7 : 0);
-  const baseParity = parityOf(weekNumber(baseMonday, state.config.semesterStart));
-  const parity = state.parity ?? baseParity;
+  const baseMonday = defaultMonday(now);
+  const baseWeek = weekNumber(baseMonday, state.config.semesterStart);
+  const monday = addDays(baseMonday, state.weekOffset * 7);
+  const shownWeek = baseWeek + state.weekOffset;
+  const parity = parityOf(shownWeek);
+  state.shownMonday = monday;
+  renderPicker();
 
   $('parityOdd').setAttribute('aria-pressed', String(parity === 'odd'));
   $('parityEven').setAttribute('aria-pressed', String(parity === 'even'));
-
-  // The other parity means the week after.
-  const monday = addDays(baseMonday, parity === baseParity ? 0 : 7);
-  const shownWeek = weekNumber(monday, state.config.semesterStart);
+  $('weekPrev').disabled = shownWeek <= 1;
+  $('weekPrev').setAttribute('aria-label', shownWeek <= 1 ? 'Săptămâna anterioară (aceasta este prima săptămână)' : `Săptămâna anterioară: ${shownWeek - 1}`);
+  $('weekNext').setAttribute('aria-label', `Săptămâna următoare: ${shownWeek + 1}`);
   $('rangeTitle').textContent =
     `${formatDate(monday, { day: 'numeric', month: 'long' })} – ${formatDate(addDays(monday, 4), { day: 'numeric', month: 'long' })}` +
-    ` · săptămâna ${shownWeek}, ${parity === 'odd' ? 'impară' : 'pară'}` +
+    ` · ${
+      shownWeek < 1
+        ? 'înainte de semestru'
+        : shownWeek > state.config.semesterWeeks
+          ? `după semestru, săptămâna ${shownWeek}`
+          : `săptămâna ${shownWeek}`
+    }, ${parity === 'odd' ? 'impară' : 'pară'}` +
     (weekend && monday === baseMonday ? ' · săptămâna viitoare' : '');
+  // Collapse only in the week being lived now (on a weekend that week is over).
+  const isCurrentWeek = !weekend && monday === mondayOf(now.date);
 
   // Where the days stack in one column (phones, narrow tablets, narrow
   // windows), days already over collapse to their name.
@@ -297,11 +312,11 @@ function render() {
     const cards = sessions
       .filter((s) => s.weekday === index + 1 && (s.weekParity === 'all' || s.weekParity === parity))
       .map((s) => sessionCard(s, date, now));
-    if (stacked && date < now.date) {
+    if (stacked && isCurrentWeek && date < now.date) {
       const open = state.openDays.has(date);
       return h(
         'div',
-        { class: `day past-day${open ? ' open' : ''}` },
+        { class: `day past-day${open ? ' open' : ''}`, 'data-date': date },
         h('button', {
           type: 'button',
           class: 'day-toggle',
@@ -321,7 +336,7 @@ function render() {
     }
     return h(
       'div',
-      { class: `day${isToday ? ' today' : ''}` },
+      { class: `day${isToday ? ' today' : ''}`, 'data-date': date },
       h('div', { class: 'day-head', id: isToday ? 'today' : null },
         h('span', { class: 'num' }, formatDate(date, { day: 'numeric' })),
         h('span', { class: 'name' }, name),
@@ -363,11 +378,105 @@ function isStacked() {
 
 /** "Acum": back to the current week and to the current class. */
 function jumpToNow() {
-  state.parity = null;
+  state.weekOffset = 0;
+  state.pickedDate = null;
   state.scrolledToToday = false;
   render();
 }
 
+/** Monday of the week shown by default: this week, or next week on Saturday and Sunday. */
+function defaultMonday(now = nowParts()) {
+  const weekend = dayNumber(now.date) - dayNumber(mondayOf(now.date)) >= 5;
+  return addDays(mondayOf(now.date), weekend ? 7 : 0);
+}
+
+// ---------- Date picker ----------
+
+const MONTHS = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
+
+/** Shows the week that contains `dateISO` (any date, inside the semester or not), without scrolling. */
+function showWeekOf(dateISO) {
+  state.weekOffset = Math.round((dayNumber(mondayOf(dateISO)) - dayNumber(defaultMonday())) / 7);
+  state.pickedDate = dateISO;
+  // Only the week changes; the page stays where it is and the user scrolls.
+  render();
+}
+
+function openPicker() {
+  state.pickerMonth = (state.shownMonday ?? defaultMonday()).slice(0, 7);
+  $('pickerPanel').hidden = false;
+  $('pickerButton').setAttribute('aria-expanded', 'true');
+  renderPicker();
+  // Opens towards the left of the button; flips to the right if that would leave the screen.
+  const panel = $('pickerPanel');
+  panel.style.left = '';
+  panel.style.right = '';
+  if (!window.matchMedia('(max-width: 640px)').matches && panel.getBoundingClientRect().left < 8) {
+    panel.style.left = '0';
+    panel.style.right = 'auto';
+  }
+  const grid = $('pickerGrid');
+  (grid.querySelector('button[aria-current="date"]') ?? grid.querySelector('button.in-week') ?? grid.querySelector('button'))?.focus();
+}
+
+function closePicker(returnFocus = true) {
+  if ($('pickerPanel').hidden) return;
+  $('pickerPanel').hidden = true;
+  $('pickerButton').setAttribute('aria-expanded', 'false');
+  if (returnFocus) $('pickerButton').focus();
+}
+
+function movePickerMonth(delta) {
+  const [y, m] = state.pickerMonth.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  state.pickerMonth = d.toISOString().slice(0, 7);
+  renderPicker();
+}
+
+function renderPicker() {
+  if ($('pickerPanel').hidden) return;
+  const now = nowParts();
+  const [y, m] = state.pickerMonth.split('-').map(Number);
+  $('pickerTitle').textContent = `${MONTHS[m - 1]} ${y}`;
+  const first = `${state.pickerMonth}-01`;
+  const start = mondayOf(first);
+  const shown = state.shownMonday;
+  const head = ['', 'L', 'Ma', 'Mi', 'J', 'V', 'S', 'D'].map((d) => h('span', { class: 'picker-dow', 'aria-hidden': 'true' }, d));
+  const cells = [];
+  for (let row = 0; row < 6; row++) {
+    const rowMonday = addDays(start, row * 7);
+    if (row > 0 && rowMonday.slice(0, 7) !== state.pickerMonth) break;
+    const week = weekNumber(rowMonday, state.config.semesterStart);
+    const par = parityOf(week) === 'odd' ? 'I' : 'P';
+    cells.push(h('span', { class: `picker-week${rowMonday === shown ? ' in-week' : ''}`, title: week >= 1 ? `Săptămâna ${week}, ${par === 'I' ? 'impară' : 'pară'}` : (par === 'I' ? 'Impară' : 'Pară') },
+      week >= 1 ? `S${week}` : '', h('b', {}, par)));
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(rowMonday, i);
+      const classes = ['picker-day'];
+      if (date.slice(0, 7) !== state.pickerMonth) classes.push('other-month');
+      if (i >= 5) classes.push('weekend');
+      if (rowMonday === shown) classes.push('in-week');
+      cells.push(h('button', {
+        type: 'button',
+        class: classes.join(' '),
+        'aria-current': date === now.date ? 'date' : null,
+        'aria-label': `${formatDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${week >= 1 ? `săptămâna ${week}, ` : ''}${par === 'I' ? 'impară' : 'pară'}`,
+        onclick: () => {
+          closePicker(false);
+          showWeekOf(date);
+        },
+      }, String(Number(date.slice(8, 10)))));
+    }
+  }
+  $('pickerGrid').replaceChildren(...head, ...cells);
+}
+
+/** Impară / Pară: the default week if it has that parity, otherwise the week after. */
+function showParity(wanted) {
+  const baseWeek = weekNumber(defaultMonday(), state.config.semesterStart);
+  state.weekOffset = parityOf(baseWeek) === wanted ? 0 : 1;
+  render();
+}
 /** 63 -> "1h3m", 45 -> "45m", 120 -> "2h". */
 function formatCountdown(minutes) {
   const hours = Math.floor(minutes / 60);
@@ -621,8 +730,27 @@ document.addEventListener('click', (event) => {
   const box = $('subscribeBox');
   if (box.open && !box.contains(event.target)) box.open = false;
 });
-$('parityOdd').addEventListener('click', () => { state.parity = 'odd'; render(); });
-$('parityEven').addEventListener('click', () => { state.parity = 'even'; render(); });
+$('parityOdd').addEventListener('click', () => showParity('odd'));
+$('parityEven').addEventListener('click', () => showParity('even'));
+// The arrow stops at week 1; the date picker can still show any week.
+$('weekPrev').addEventListener('click', () => {
+  if (weekNumber(state.shownMonday, state.config.semesterStart) > 1) state.weekOffset -= 1;
+  render();
+});
+$('pickerButton').addEventListener('click', () => ($('pickerPanel').hidden ? openPicker() : closePicker()));
+$('pickerPrev').addEventListener('click', () => movePickerMonth(-1));
+$('pickerNext').addEventListener('click', () => movePickerMonth(1));
+$('pickerToday').addEventListener('click', () => {
+  closePicker(false);
+  showWeekOf(nowParts().date);
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closePicker();
+});
+document.addEventListener('click', (event) => {
+  if (!$('pickerBox').contains(event.target)) closePicker(false);
+});
+$('weekNext').addEventListener('click', () => { state.weekOffset += 1; render(); });
 $('jumpNow').addEventListener('click', jumpToNow);
 // Rotation or resizing can switch between stacked and side-by-side days.
 let resizeTimer = null;
@@ -674,7 +802,7 @@ $('settingsForm').addEventListener('submit', async (event) => {
       body: { semesterStart: $('semesterStart').value, semesterWeeks: Number($('semesterWeeks').value) },
     });
     state.config = { ...state.config, ...saved };
-    state.parity = null;
+    state.weekOffset = 0;
     renderSettingsInfo();
     render();
     setStatus('Setările au fost salvate.');

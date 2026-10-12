@@ -43,6 +43,27 @@
     </div>
     <button type="button" class="btn quiet" id="jumpNow">Acum</button>
     <a class="btn ghost" id="calendarLink" href="#" download="psihorar.ics">Descarcă calendarul (.ics)</a>
+    <div class="picker" id="pickerBox">
+      <button type="button" class="btn ghost icon-btn" id="pickerButton" aria-haspopup="dialog" aria-expanded="false" aria-controls="pickerPanel" aria-label="Alege o zi din calendar" title="Alege o zi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/></svg>
+      </button>
+      <div class="picker-panel" id="pickerPanel" role="dialog" aria-label="Alege o zi" hidden>
+        <div class="picker-head">
+          <button type="button" class="chev-btn small" id="pickerPrev" aria-label="Luna anterioară">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <div class="picker-title" id="pickerTitle" aria-live="polite"></div>
+          <button type="button" class="chev-btn small" id="pickerNext" aria-label="Luna următoare">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <div class="picker-grid" id="pickerGrid"></div>
+        <div class="picker-foot">
+          <span class="hint">S = săptămâna semestrului · I / P = impară / pară</span>
+          <button type="button" class="btn quiet" id="pickerToday">Azi</button>
+        </div>
+      </div>
+    </div>
     <details class="subscribe" id="subscribeBox">
       <summary class="btn ghost">Abonare calendar</summary>
       <div class="subscribe-panel">
@@ -75,7 +96,15 @@
     <span><b class="opt">(Opt.)</b>Disciplină opțională</span>
   </div>
 
-  <h2 class="range" id="rangeTitle"></h2>
+  <div class="week-nav">
+    <button type="button" class="chev-btn" id="weekPrev" aria-label="Săptămâna anterioară">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h2 class="range" id="rangeTitle" aria-live="polite"></h2>
+    <button type="button" class="chev-btn" id="weekNext" aria-label="Săptămâna următoare">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </div>
   <p class="notice" id="notice" hidden></p>
   <section class="week" id="week" aria-label="Orar săptămânal"></section>
 

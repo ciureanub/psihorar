@@ -10,6 +10,8 @@ Orarul Facultății de Psihologie (semestrul I, 2026-2027), ca aplicație web re
 | Ora curentă | Ceas live în fusul Europe/Bucharest, numărul săptămânii și paritatea ei |
 | Starea orelor | Gri = trecut, albastru = în desfășurare (cu minute rămase), verde = urmează („Urmează 1h3m” pentru orele de azi) |
 | Fiecare oră | Nume · tip (Curs / Seminar / Practică), profesor coordonator, sala, (Opt.) pentru opționale |
+| Navigare | Săgețile ‹ › de lângă dată schimbă săptămâna (nu înainte de săptămâna 1); Impară / Pară sare la săptămâna cu acea paritate |
+| Calendar mic | Iconița de lângă „Descarcă calendarul”: alegi orice zi și se schimbă săptămâna afișată (pară / impară), fără derulare, inclusiv înainte sau după semestru |
 | Ancorare | La deschidere, pagina derulează la ora în desfășurare sau la următoarea; butonul „Acum” revine acolo |
 | Opționale (An I) | Comutatoare AMPAC, TAA, CAP, CFRD: fiecare afișează sau ascunde cursul și seminarul disciplinei, în toate săptămânile. Alegerea se păstrează în browser și se aplică și calendarului |
 | Pe mobil | Zilele trecute din săptămână se pliază la numele zilei; în weekend se afișează săptămâna viitoare |
@@ -28,6 +30,8 @@ Orarul Facultății de Psihologie (semestrul I, 2026-2027), ca aplicație web re
 | 6. Rafinări | Numărătoare inversă „Urmează”, tipul orei după titlu, nume de fișier `.ics` per grupă, abonare calendar, ancorare pe ora curentă, zile trecute pliate pe mobil, weekend → săptămâna viitoare |
 | 7. Curățare orar | Eliminate temporar (curs și seminar): „Autocunoaștere și mindset pentru un parcurs academic de succes” și „Comunicare, fake news şi rezilienţă la dezinformare” |
 | 8. Opționale | Excluderile înlocuite cu comutatoare per student: AMPAC și CFRD pornesc oprite, TAA și CAP pornite |
+| 9. Navigare | Săgeți Înapoi / Înainte lângă dată, pentru orice săptămână de la săptămâna 1 încolo |
+| 10. Calendar mic | Selector de dată care deschide săptămâna aleasă, cu numărul săptămânii și paritatea pe fiecare rând |
 
 Date curente: 3 ani, 29 de grupe, 589 de ore. Anul I are 20 de ore pe grupă, din care 8 opționale.
 
