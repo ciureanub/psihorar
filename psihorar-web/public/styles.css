@@ -15,6 +15,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -107,6 +108,21 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--gold); }
 .subscribe-panel .hint { margin: 0; }
 .row.nowrap { flex-wrap: nowrap; }
 @media (max-width: 640px) { .subscribe-panel { position: static; margin-top: 8px; } }
+
+.optionals { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.switches { display: flex; flex-wrap: wrap; gap: 8px; }
+.switch {
+  min-height: 44px; display: inline-flex; align-items: center; gap: 10px; padding: 0 14px 0 10px;
+  border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card);
+  color: var(--muted); font: inherit; font-weight: 700; letter-spacing: .5px; cursor: pointer;
+}
+.switch .track { width: 34px; height: 20px; border-radius: 10px; background: #3A4763; padding: 2px; display: flex; }
+.switch .knob { width: 16px; height: 16px; border-radius: 50%; background: var(--text); }
+.switch[aria-checked="true"] { color: var(--text); border-color: var(--gold); }
+.switch[aria-checked="true"] .track { background: var(--gold); justify-content: flex-end; }
+.switch[aria-checked="true"] .knob { background: #0B1426; }
+.optional-legend { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; }
+.optional-legend b { color: var(--gold); font-weight: 700; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 18px 0 6px; font-size: 13px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }

@@ -11,6 +11,7 @@ Orarul Facultății de Psihologie (semestrul I, 2026-2027), ca aplicație web re
 | Starea orelor | Gri = trecut, albastru = în desfășurare (cu minute rămase), verde = urmează („Urmează 1h3m” pentru orele de azi) |
 | Fiecare oră | Nume · tip (Curs / Seminar / Practică), profesor coordonator, sala, (Opt.) pentru opționale |
 | Ancorare | La deschidere, pagina derulează la ora în desfășurare sau la următoarea; butonul „Acum” revine acolo |
+| Opționale (An I) | Comutatoare AMPAC, TAA, CAP, CFRD: fiecare afișează sau ascunde cursul și seminarul disciplinei, în toate săptămânile. Alegerea se păstrează în browser și se aplică și calendarului |
 | Pe mobil | Zilele trecute din săptămână se pliază la numele zilei; în weekend se afișează săptămâna viitoare |
 | Calendar | Descărcare `.ics` per grupă (`psihorar-an-i-grupa-i.ics`) sau abonare (Google, Apple, Outlook) care se actualizează singură |
 | Administrator | Login; setări semestru (început, număr de săptămâni); adăugare / modificare / ștergere ore; import din `.xlsx` cu previzualizarea diferențelor |
@@ -25,9 +26,10 @@ Orarul Facultății de Psihologie (semestrul I, 2026-2027), ca aplicație web re
 | 4. Aplicație web | Rescris ca aplicație web pentru Replit (`psihorar-web/`), cu zona de Administrator și date persistente |
 | 5. Fișier unic | `PsihORAR.html`: aceeași aplicație într-un singur fișier, fără server |
 | 6. Rafinări | Numărătoare inversă „Urmează”, tipul orei după titlu, nume de fișier `.ics` per grupă, abonare calendar, ancorare pe ora curentă, zile trecute pliate pe mobil, weekend → săptămâna viitoare |
-| 7. Curățare orar | Eliminate complet (curs și seminar): „Autocunoaștere și mindset pentru un parcurs academic de succes” și „Comunicare, fake news şi rezilienţă la dezinformare” |
+| 7. Curățare orar | Eliminate temporar (curs și seminar): „Autocunoaștere și mindset pentru un parcurs academic de succes” și „Comunicare, fake news şi rezilienţă la dezinformare” |
+| 8. Opționale | Excluderile înlocuite cu comutatoare per student: AMPAC și CFRD pornesc oprite, TAA și CAP pornite |
 
-Date curente: 3 ani, 29 de grupe, 549 de ore. Anul I are 16 ore pe grupă.
+Date curente: 3 ani, 29 de grupe, 589 de ore. Anul I are 20 de ore pe grupă, din care 8 opționale.
 
 ## Structura repository-ului
 
@@ -46,14 +48,15 @@ Date curente: 3 ani, 29 de grupe, 549 de ore. Anul I are 16 ore pe grupă.
 | `src/app.ts` | Rutele API și servirea paginii |
 | `src/store.ts` | Datele: fișier JSON local sau PostgreSQL |
 | `src/parser.ts` | Citirea fișierului `.xlsx` al facultății |
-| `src/exclusions.ts` | Orele scoase din orar la cerere |
+| `src/optionals.ts` | Disciplinele opționale, acronimele lor și starea implicită |
+| `src/exclusions.ts` | Orele scoase din orar pentru toți (acum goală) |
 | `src/diff.ts` | Diferențele dintre un fișier nou și orarul publicat |
 | `src/parity.ts` | Numărul săptămânii și paritatea |
 | `src/ics.ts` | Exportul și abonarea de calendar |
 | `src/auth.ts` | Parola (scrypt) și sesiunea de administrator |
 | `public/` | Pagina: `index.html`, `styles.css`, `app.js` |
 | `data/PSIH.xlsx` | Fișierul facultății, încărcat la prima pornire |
-| `test/` | 37 de teste (`npm test`) |
+| `test/` | 39 de teste (`npm test`) |
 
 ## Cum se folosește
 
@@ -98,9 +101,13 @@ Parola nu se scrie niciodată în cod; se schimbă doar din Secrets, urmată de 
 3. **Ore:** editezi orele grupei selectate sus; „Salvează”, „Șterge”, „Adaugă oră”.
 4. **Import .xlsx** (doar varianta cu server): încarci fișierul facultății, vezi orele adăugate / modificate / șterse și celulele necitite, apoi „Publică”. Nimic nu se schimbă înainte de „Publică”.
 
+### Opționale
+
+În anul I apar comutatoarele **AMPAC** (Autocunoaștere și mindset pentru un parcurs academic de succes), **TAA** (Tehnici şi abilităţi academice), **CAP** (Comunicarea aplicată pentru psihologi) și **CFRD** (Comunicare, fake news şi rezilienţă la dezinformare). Fiecare ascunde sau afișează cursul și seminarul disciplinei în toate săptămânile; cardurile poartă eticheta „(Opt. · ACRONIM)”. Alegerea se păstrează în browser și se transmite și calendarului (`?ascunde=AMPAC,CFRD`). Lista, acronimele și starea implicită se schimbă în `src/optionals.ts`.
+
 ### Excluderea unei discipline
 
-Adaugă un rând în `psihorar-web/src/exclusions.ts` (nume + tip). La următoarea pornire, serverul șterge ora și din datele deja salvate, iar importurile viitoare o ignoră. Pentru `PsihORAR.html`, fișierul trebuie regenerat.
+Pentru a scoate o oră pentru toți studenții, adaugă un rând în `psihorar-web/src/exclusions.ts` (nume + tip). La următoarea pornire, serverul șterge ora și din datele deja salvate, iar importurile viitoare o ignoră. Pentru `PsihORAR.html`, fișierul trebuie regenerat.
 
 ### Calendar
 

@@ -56,6 +56,7 @@ const state = {
   token: null,
   scrolledToToday: false,
   openDays: new Set(), // past days the user expanded, by date
+  optionalPrefs: loadOptionalPrefs(), // { AMPAC: false, TAA: true, ... } as the student set them
   stacked: null, // last seen layout: days in one column?
 };
 
@@ -138,11 +139,77 @@ function fillSelectors() {
   );
 }
 
+// ---------- Optional disciplines (switches) ----------
+
+const OPTIONAL_KEY = 'psihorar.optionale';
+
+function loadOptionalPrefs() {
+  try {
+    // Literal key: this runs while `state` is being built, before OPTIONAL_KEY exists.
+    const saved = JSON.parse(store('psihorar.optionale') ?? '{}');
+    return saved && typeof saved === 'object' ? saved : {};
+  } catch {
+    return {};
+  }
+}
+
+const normName = (text) =>
+  text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+function optionalsForYear() {
+  const meta = currentGroupMeta();
+  return meta ? (state.config?.optionals ?? []).filter((o) => o.year === meta.year.name) : [];
+}
+
+/** The optional discipline a session belongs to, or null. */
+function optionalOf(session) {
+  const key = normName(session.name);
+  return optionalsForYear().find((o) => normName(o.name) === key) ?? null;
+}
+
+const isOn = (o) => (typeof state.optionalPrefs[o.code] === 'boolean' ? state.optionalPrefs[o.code] : o.defaultOn);
+const hiddenCodes = () => optionalsForYear().filter((o) => !isOn(o)).map((o) => o.code);
+const isVisible = (session) => {
+  const o = optionalOf(session);
+  return !o || isOn(o);
+};
+
+function renderOptionals() {
+  const list = optionalsForYear();
+  $('optionals').hidden = list.length === 0;
+  $('optionalSwitches').replaceChildren(
+    ...list.map((o) =>
+      h('button', {
+        type: 'button',
+        class: 'switch',
+        role: 'switch',
+        'aria-checked': String(isOn(o)),
+        title: o.name,
+        'aria-label': `${o.code}: ${o.name}`,
+        onclick: () => {
+          state.optionalPrefs = { ...state.optionalPrefs, [o.code]: !isOn(o) };
+          store(OPTIONAL_KEY, JSON.stringify(state.optionalPrefs));
+          renderOptionals();
+          updateCalendarLinks();
+          render();
+        },
+      },
+        h('span', { class: 'track', 'aria-hidden': 'true' }, h('span', { class: 'knob' })),
+        h('span', { class: 'code' }, o.code),
+      ),
+    ),
+  );
+  $('optionalLegend').replaceChildren(
+    ...list.map((o) => h('span', {}, h('b', {}, o.code), ` ${o.name}`)),
+  );
+}
+
 async function selectGroup(groupId) {
   state.groupId = groupId;
   state.scrolledToToday = false;
   store('psihorar.group', groupId);
   fillSelectors();
+  renderOptionals();
   updateCalendarLinks();
   await loadTimetable();
 }
@@ -158,9 +225,11 @@ function calendarFileName() {
 function updateCalendarLinks() {
   const meta = currentGroupMeta();
   if (!meta) return;
-  $('calendarLink').href = `/api/groups/${meta.group.id}/calendar.ics`;
+  const hidden = hiddenCodes();
+  const query = hidden.length ? `?ascunde=${hidden.join(',')}` : '';
+  $('calendarLink').href = `/api/groups/${meta.group.id}/calendar.ics${query}`;
   $('calendarLink').download = calendarFileName();
-  const path = `/api/calendar/${slugify(meta.year.name)}/${slugify(meta.group.name)}.ics`;
+  const path = `/api/calendar/${slugify(meta.year.name)}/${slugify(meta.group.name)}.ics${query}`;
   const https = `${location.origin}${path}`;
   const webcal = https.replace(/^https?:/, 'webcal:');
   $('subscribeUrl').value = https;
@@ -221,7 +290,7 @@ function render() {
   const stacked = isStacked();
   state.stacked = stacked;
 
-  const sessions = state.timetable?.sessions ?? [];
+  const sessions = (state.timetable?.sessions ?? []).filter(isVisible);
   const columns = DAY_NAMES.map((name, index) => {
     const date = addDays(monday, index);
     const isToday = date === now.date;
@@ -321,7 +390,7 @@ function sessionCard(s, date, now) {
     h('div', { class: 'title' },
       s.name,
       h('span', { class: 'kind' }, ` · ${TYPE_LABEL[s.type] ?? s.type}`),
-      s.isOptional && h('span', { class: 'opt' }, '(Opt.)')),
+      s.isOptional && h('span', { class: 'opt' }, optionalOf(s) ? `(Opt. · ${optionalOf(s).code})` : '(Opt.)')),
     h('div', { class: 'meta' }, PARITY_LABEL[s.weekParity]),
     h('div', { class: 'meta' }, 'Prof. coordonator: ', h('b', {}, s.professor)),
     h('div', { class: 'meta' }, 'Sala: ', h('b', {}, s.room)),

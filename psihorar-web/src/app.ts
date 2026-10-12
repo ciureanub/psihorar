@@ -6,6 +6,7 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import { issueToken, TOKEN_TTL_SECONDS, verifyPassword, verifyToken } from './auth.js';
 import { computeDiff } from './diff.js';
 import { buildCalendar, calendarFileName, slugify } from './ics.js';
+import { OPTIONALS, optionalCode, parseHidden } from './optionals.js';
 import { parseWorkbook, type ParsedSession } from './parser.js';
 import type { Session, Store } from './store.js';
 
@@ -69,7 +70,22 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
 
   app.get('/api/health', async () => ({ ok: true }));
 
-  app.get('/api/config', async () => ({ ...store.getConfig(), adminEnabled: opts.admin !== null }));
+  app.get('/api/config', async () => ({
+    ...store.getConfig(),
+    adminEnabled: opts.admin !== null,
+    optionals: OPTIONALS,
+  }));
+
+  // Calendars honour the student's optional switches: ?ascunde=AMPAC,CFRD
+  const hiddenQuery = {
+    type: 'object',
+    properties: { ascunde: { type: 'string', maxLength: 100, pattern: '^[A-Za-z,]*$' } },
+  } as const;
+  const visibleSessions = (group: { id: string; yearName: string }, hidden: Set<string>) =>
+    store.listSessions(group.id).filter((s) => {
+      const code = optionalCode(group.yearName, s.name);
+      return !code || !hidden.has(code);
+    });
 
   app.get('/api/years', async () =>
     store.listYears().map((y) => ({
@@ -98,25 +114,26 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     },
   );
 
-  app.get<{ Params: { id: string } }>(
+  app.get<{ Params: { id: string }; Querystring: { ascunde?: string } }>(
     '/api/groups/:id/calendar.ics',
-    { schema: { params: idParams } },
+    { schema: { params: idParams, querystring: hiddenQuery } },
     async (req, reply) => {
       const group = store.getGroup(req.params.id);
       if (!group) return reply.code(404).send({ error: 'group_not_found' });
       return reply
         .header('Content-Type', 'text/calendar; charset=utf-8')
         .header('Content-Disposition', `attachment; filename="${calendarFileName(group.yearName, group.name)}"`)
-        .send(buildCalendar(store.getConfig(), group, store.listSessions(group.id)));
+        .send(buildCalendar(store.getConfig(), group, visibleSessions(group, parseHidden(req.query.ascunde))));
     },
   );
 
   // Subscription feed. Addressed by year and group name, not by id, so the
   // link keeps working when the timetable is re-imported or the database rebuilt.
-  app.get<{ Params: { year: string; file: string } }>(
+  app.get<{ Params: { year: string; file: string }; Querystring: { ascunde?: string } }>(
     '/api/calendar/:year/:file',
     {
       schema: {
+        querystring: hiddenQuery,
         params: {
           type: 'object',
           required: ['year', 'file'],
@@ -137,7 +154,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
         return reply
           .header('Content-Type', 'text/calendar; charset=utf-8')
           .header('Cache-Control', 'public, max-age=900')
-          .send(buildCalendar(store.getConfig(), group, store.listSessions(group.id)));
+          .send(buildCalendar(store.getConfig(), group, visibleSessions(group, parseHidden(req.query.ascunde))));
       }
       return reply.code(404).send({ error: 'group_not_found' });
     },

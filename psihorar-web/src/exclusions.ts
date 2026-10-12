@@ -1,24 +1,19 @@
 import type { SessionType } from './parser.js';
 
 /**
- * Sessions removed from the timetable on request. They are skipped when the
- * faculty workbook is read, so a later import does not bring them back.
- * To restore one, delete its line here.
+ * Sessions removed from the timetable for everyone. They are skipped when the
+ * faculty workbook is read and purged from stored data at start-up.
+ * Optional disciplines that students may want are not listed here: they are
+ * switched on or off per student (see optionals.ts).
  */
-export const EXCLUDED_SESSIONS: { name: string; type: SessionType }[] = [
-  { name: 'Autocunoaștere și mindset pentru un parcurs academic de succes', type: 'seminar' },
-  { name: 'Autocunoaștere și mindset pentru un parcurs academic de succes', type: 'curs' },
-  { name: 'Comunicare, fake news şi rezilienţă la dezinformare', type: 'seminar' },
-  { name: 'Comunicare, fake news şi rezilienţă la dezinformare', type: 'curs' },
-];
+export const EXCLUDED_SESSIONS: { name: string; type: SessionType }[] = [];
 
 /** Case-insensitive, and blind to diacritics (the workbook mixes "ş" and "ș"). */
 function normalize(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
-const EXCLUDED_KEYS = new Set(EXCLUDED_SESSIONS.map((e) => `${e.type}|${normalize(e.name)}`));
-
 export function isExcluded(session: { name: string; type: SessionType }): boolean {
-  return EXCLUDED_KEYS.has(`${session.type}|${normalize(session.name)}`);
+  const key = `${session.type}|${normalize(session.name)}`;
+  return EXCLUDED_SESSIONS.some((e) => `${e.type}|${normalize(e.name)}` === key);
 }
