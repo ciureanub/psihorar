@@ -5,3 +5,7 @@ dist
 *.zip
 Claude outputs/
 psihorar-web/data/state.json
+
+# Verificarea săptămânală (generată)
+verificari/
+diferente.html

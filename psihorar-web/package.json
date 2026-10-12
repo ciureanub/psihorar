@@ -11,7 +11,9 @@
     "dev": "tsx watch src/server.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build:html": "tsx scripts/build-html.ts"
+    "build:html": "tsx scripts/build-html.ts",
+    "build:check": "esbuild scripts/check-diff.ts --bundle --platform=node --format=esm --target=node20 --outfile=scripts/check-diff.mjs \"--banner:js=import { createRequire as __cr } from 'module'; const require = __cr(import.meta.url);\"",
+    "check:diff": "node scripts/check-diff.mjs"
   },
   "dependencies": {
     "@fastify/multipart": "^9.0.0",
