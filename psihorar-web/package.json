@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "tsx src/server.ts",
     "dev": "tsx watch src/server.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:html": "tsx scripts/build-html.ts"
   },
   "dependencies": {
     "@fastify/multipart": "^9.0.0",

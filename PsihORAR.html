@@ -245,6 +245,10 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--gold); }
 .status { min-height: 20px; color: var(--future); font-size: 14px; margin: 12px 0 0; }
 .status.bad, .error { color: var(--danger); }
 
+.sync-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 18px; display: flex; flex-direction: column; gap: 10px; }
+.sync-box h3 { margin: 0; }
+.sync-status { margin: 0; font-size: 14px; line-height: 1.6; }
+.sync-error { color: var(--danger); }
 .rows { display: flex; flex-direction: column; gap: 10px; }
 .editor {
   display: grid;
@@ -1142,6 +1146,7 @@ function showAdmin(visible) {
     $('semesterWeeks').value = state.config.semesterWeeks;
     renderSettingsInfo();
     renderSessionEditor();
+    window.dispatchEvent(new Event('psihorar:admin-open'));
   }
 }
 

@@ -280,7 +280,8 @@ function parseSheet(ws: ExcelJS.Worksheet, errors: ImportError[]): ParsedYear | 
 
   let weekday = 0;
   let slot: { start: string; end: string } | null = null;
-  const lastRow = ws.actualRowCount || ws.rowCount;
+  // actualRowCount counts only non-empty rows, so it undercounts sheets with gaps.
+  const lastRow = Math.max(ws.actualRowCount, ws.rowCount);
 
   for (let r = headerRow + 1; r <= lastRow; r++) {
     const dayText = cellText(ws.getCell(r, dayCol).value).trim();

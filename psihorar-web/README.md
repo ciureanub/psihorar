@@ -19,12 +19,25 @@ Orar web pentru Facultatea de Psihologie: vizualizare săptămânală, responsiv
    | `ADMIN_PASSWORD` | parola de administrator |
    | `SESSION_SECRET` | un șir aleatoriu de minimum 32 de caractere |
 
-3. Pentru date care rezistă la redeploy, adaugă o bază de date PostgreSQL din panoul Replit (creează automat `DATABASE_URL`). Fără ea, datele stau în `data/state.json` și se pierd la reconstruirea deployment-ului.
+3. PostgreSQL nu este necesar. Orarul vine din fișierul Google Sheets al facultății (sincronizat automat, vezi mai jos) și, după o republicare, se reîncarcă din ultima versiune bună sau din `data/PSIH.xlsx`. Doar setările și editările manuale se pierd la republicare; pentru ele poți adăuga o bază PostgreSQL (`DATABASE_URL`).
 4. Apasă **Run**. Comanda este `npm start`; serverul ascultă pe `PORT` (implicit 3000).
 
 La prima pornire, dacă baza de date este goală, orarul se încarcă din `data/PSIH.xlsx`.
 
 Parola nu se scrie niciodată în cod. Se schimbă doar din Secrets, apoi se repornește aplicația.
+
+## Sincronizare cu fișierul facultății
+
+Serverul descarcă fișierul Google Sheets al facultății la pornire și la fiecare oră (Administrare → „Sincronizare / Import” → „Sincronizează acum” pentru manual). Fișierul trebuie partajat „oricine are linkul poate vedea”. Dacă nu poate fi descărcat, nu e un `.xlsx` valid sau pare incomplet (sub jumătate din orele versiunii anterioare), orarul rămâne pe ultima versiune bună (`data/last-good.xlsx`).
+
+| Variabilă | Implicit | Rol |
+|---|---|---|
+| `SHEET_XLSX_URL` | fișierul facultății | alt link (de partajare sau de export); `off` oprește sincronizarea |
+| `SYNC_INTERVAL_MINUTES` | `60` | cât de des se verifică; `0` = doar manual |
+
+## Fișierul unic `PsihORAR.html`
+
+`npm run build:html` îl generează în folderul de deasupra (`../PsihORAR.html`), din `data/last-good.xlsx` sau `data/PSIH.xlsx`.
 
 ## Local
 
@@ -43,6 +56,9 @@ Pe Windows (PowerShell): `$env:ADMIN_EMAIL="..."; $env:ADMIN_PASSWORD="..."; npm
 | `src/server.ts` | pornire, variabile de mediu, încărcare inițială |
 | `src/app.ts` | rutele API și servirea paginii |
 | `src/store.ts` | datele: fișier JSON sau PostgreSQL |
+| `src/sheet-sync.ts` | sincronizarea cu fișierul facultății, cu revenire la ultima versiune bună |
+| `src/optionals.ts` | opționalele (AMPAC, TAA, CAP, CFRD) și starea lor implicită |
+| `scripts/build-html.ts` | generează `PsihORAR.html` |
 | `src/parser.ts` | citirea fișierului .xlsx al facultății |
 | `src/diff.ts` | diferențele dintre fișier și orarul publicat |
 | `src/parity.ts` | numărul săptămânii și paritatea |
@@ -50,7 +66,7 @@ Pe Windows (PowerShell): `$env:ADMIN_EMAIL="..."; $env:ADMIN_PASSWORD="..."; npm
 | `src/auth.ts` | parolă (scrypt) și sesiune de administrator |
 | `public/` | pagina: `index.html`, `styles.css`, `app.js` |
 | `src/exclusions.ts` | orele scoase din orar la cerere; importul le ignoră |
-| `test/` | 35 de teste (`npm test`) |
+| `test/` | 52 de teste (`npm test`) |
 
 ## Reguli
 

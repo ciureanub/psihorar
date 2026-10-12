@@ -8,6 +8,7 @@ import { computeDiff } from './diff.js';
 import { buildCalendar, calendarFileName, slugify } from './ics.js';
 import { OPTIONALS, optionalCode, parseHidden } from './optionals.js';
 import { parseWorkbook, type ParsedSession } from './parser.js';
+import type { SheetSync } from './sheet-sync.js';
 import type { Session, Store } from './store.js';
 
 export interface AppOptions {
@@ -18,6 +19,8 @@ export interface AppOptions {
   /** 0 disables rate limiting (tests). */
   rateLimitPerMinute?: number;
   logger?: boolean;
+  /** Google Sheet sync; absent in tests that do not need it. */
+  sync?: SheetSync;
 }
 
 const ISO_DATE = '^\\d{4}-\\d{2}-\\d{2}$';
@@ -201,6 +204,14 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     admin.addHook('onRequest', requireAdmin);
 
     admin.get('/api/admin/me', async () => ({ ok: true }));
+
+    admin.get('/api/admin/sync', async () => opts.sync?.status() ?? { enabled: false });
+
+    admin.post('/api/admin/sync', async (_req, reply) => {
+      if (!opts.sync) return reply.code(404).send({ error: 'sync_disabled' });
+      const result = await opts.sync.run();
+      return { ...result, status: opts.sync.status() };
+    });
 
     admin.put<{ Body: { semesterStart?: string; semesterWeeks?: number } }>(
       '/api/admin/config',

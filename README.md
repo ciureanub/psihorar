@@ -32,6 +32,7 @@ Orarul Facultății de Psihologie (semestrul I, 2026-2027), ca aplicație web re
 | 8. Opționale | Excluderile înlocuite cu comutatoare per student: AMPAC și CFRD pornesc oprite, TAA și CAP pornite |
 | 9. Navigare | Săgeți Înapoi / Înainte lângă dată, pentru orice săptămână de la săptămâna 1 încolo |
 | 10. Calendar mic | Selector de dată care deschide săptămâna aleasă, cu numărul săptămânii și paritatea pe fiecare rând |
+| 11. Sursă unică | Scriptul care generează `PsihORAR.html` mutat în repository (`npm run build:html`); sincronizare automată cu fișierul Google Sheets al facultății, cu revenire la ultima versiune bună |
 
 Date curente: 3 ani, 29 de grupe, 589 de ore. Anul I are 20 de ore pe grupă, din care 8 opționale.
 
@@ -60,7 +61,10 @@ Date curente: 3 ani, 29 de grupe, 589 de ore. Anul I are 20 de ore pe grupă, di
 | `src/auth.ts` | Parola (scrypt) și sesiunea de administrator |
 | `public/` | Pagina: `index.html`, `styles.css`, `app.js` |
 | `data/PSIH.xlsx` | Fișierul facultății, încărcat la prima pornire |
-| `test/` | 39 de teste (`npm test`) |
+| `src/sheet-sync.ts` | Sincronizarea cu fișierul Google Sheets al facultății (sursa de adevăr), cu revenire la ultima versiune bună |
+| `scripts/build-html.ts` | Generează `PsihORAR.html` (`npm run build:html`) |
+| `scripts/standalone/` | Partea care înlocuiește serverul în `PsihORAR.html` (date în browser) |
+| `test/` | 52 de teste (`npm test`) |
 
 ## Cum se folosește
 
@@ -70,7 +74,7 @@ Deschide `PsihORAR.html` în browser (dublu-click). Merge și fără internet; f
 
 - Modificările de administrator se păstrează doar în browserul respectiv. Prima autentificare din acel browser stabilește emailul și parola.
 - Din fila „Date” poți exporta / importa modificările (`.json`) sau reveni la orarul inițial.
-- Nu are import `.xlsx` și nici abonare calendar (acestea cer server).
+- Nu are import `.xlsx`, sincronizare și nici abonare calendar (acestea cer server). Se regenerează cu `npm run build:html`.
 
 ### Local, cu server
 
@@ -93,10 +97,33 @@ Apoi deschide `http://localhost:3000`. Fără `DATABASE_URL`, datele se salveaz�
 
 1. Creează un Repl Node.js și urcă conținutul folderului `psihorar-web/` (sau importă `psihorar-web.zip`).
 2. În **Secrets** adaugă `ADMIN_EMAIL`, `ADMIN_PASSWORD` și `SESSION_SECRET` (minim 32 de caractere aleatorii).
-3. Adaugă o bază de date PostgreSQL din panoul Replit (creează automat `DATABASE_URL`). Fără ea, modificările se pierd la fiecare republicare.
+3. PostgreSQL nu este necesar. Fără el, orarul vine din fișierul facultății (vezi „Sincronizare”) și se păstrează în `data/`; după o republicare se reîncarcă automat din ultima versiune bună sau din `data/PSIH.xlsx`. Doar setările și editările manuale de administrator se pierd la republicare; pentru ele poți adăuga oricând o bază PostgreSQL (`DATABASE_URL`).
 4. Apasă **Run** (comanda este `npm start`).
 
 Parola nu se scrie niciodată în cod; se schimbă doar din Secrets, urmată de o repornire.
+
+### Sincronizare cu fișierul facultății (sursa de adevăr)
+
+Orarul vine din fișierul Google Sheets al facultății. Serverul îl descarcă la pornire și apoi la fiecare oră, iar din Administrare → „Sincronizare / Import” se poate porni manual („Sincronizează acum”) și se vede starea.
+
+- **Ce trebuie:** fișierul partajat „oricine are linkul poate vedea”. Fără asta, Google întoarce o pagină de autentificare și sincronizarea eșuează.
+- **Fail-safe:** dacă fișierul nu poate fi descărcat, nu răspunde în 20 de secunde, nu este un `.xlsx` valid, nu conține ore sau are sub jumătate din orele ultimei versiuni bune, nu se schimbă nimic: aplicația rămâne pe ultima versiune bună și afișează eroarea în Administrare.
+- **Ultima versiune bună** se păstrează în `data/last-good.xlsx` (plus `data/last-good.json`). După o repornire cu datele pierdute, aplicația pornește din ea; dacă nu există, din `data/PSIH.xlsx`.
+- **Atenție:** sincronizarea înlocuiește orele grupelor modificate în fișier, deci editările manuale ale acelor grupe se pierd. Corecturile se fac în fișierul facultății.
+
+| Variabilă | Implicit | Rol |
+|---|---|---|
+| `SHEET_XLSX_URL` | fișierul facultății | Alt link (de partajare sau de export); `off` oprește sincronizarea |
+| `SYNC_INTERVAL_MINUTES` | `60` | Cât de des se verifică fișierul; `0` = doar manual |
+
+### Generarea `PsihORAR.html`
+
+```
+cd psihorar-web
+npm run build:html
+```
+
+Scrie `PsihORAR.html` în rădăcina proiectului, din `data/last-good.xlsx` dacă există, altfel din `data/PSIH.xlsx` (sau `-- --xlsx fișier.xlsx`). Rulează-l după orice modificare în `public/` sau în date, ca fișierul unic să rămână la zi.
 
 ### Administrare
 
@@ -130,4 +157,5 @@ Pentru a scoate o oră pentru toți studenții, adaugă un rând în `psihorar-w
 - Repository-ul este public și conține fișierul facultății (inclusiv numele profesorilor).
 - Versiunea web nu trimite notificări pe telefon; alertele vin doar din aplicația de calendar.
 - Salvarea în PostgreSQL a fost testată doar cu stocare în memorie, nu pe o bază de date reală.
+- Sincronizarea a fost testată cu o copie locală a fișierului, nu cu linkul Google real (care trebuie partajat public).
 - `PsihORAR.html` are datele incluse în fișier; după orice schimbare de orar trebuie regenerat.

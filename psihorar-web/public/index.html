@@ -116,7 +116,7 @@
     <div class="tabs" role="tablist">
       <button type="button" role="tab" id="tabSettings" aria-controls="paneSettings" aria-selected="true">Setări și săptămâni</button>
       <button type="button" role="tab" id="tabSessions" aria-controls="paneSessions" aria-selected="false">Ore</button>
-      <button type="button" role="tab" id="tabImport" aria-controls="paneImport" aria-selected="false">Import .xlsx</button>
+      <button type="button" role="tab" id="tabImport" aria-controls="paneImport" aria-selected="false">Sincronizare / Import</button>
     </div>
 
     <div class="pane" id="paneSettings" role="tabpanel" aria-labelledby="tabSettings">
@@ -142,6 +142,15 @@
     </div>
 
     <div class="pane" id="paneImport" role="tabpanel" aria-labelledby="tabImport" hidden>
+      <div class="sync-box" id="syncBox">
+        <h3>Sincronizare cu Google Sheets (sursa facultății)</h3>
+        <p class="sync-status" id="syncStatus">Se încarcă starea…</p>
+        <div class="row">
+          <button type="button" class="btn primary" id="syncNow">Sincronizează acum</button>
+        </div>
+        <p class="hint">Serverul verifică automat fișierul. Dacă fișierul nu poate fi descărcat sau pare incomplet, orarul rămâne la ultima versiune bună. Modificările făcute manual la ore se pierd la următoarea sincronizare care schimbă grupa respectivă: corecturile se fac în fișierul facultății.</p>
+      </div>
+      <h3>Import manual</h3>
       <form id="importForm" class="row">
         <div class="field grow">
           <label for="importFile">Fișier orar (.xlsx)</label>

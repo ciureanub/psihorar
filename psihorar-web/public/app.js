@@ -531,6 +531,7 @@ function showAdmin(visible) {
     $('semesterWeeks').value = state.config.semesterWeeks;
     renderSettingsInfo();
     renderSessionEditor();
+    window.dispatchEvent(new Event('psihorar:admin-open'));
   }
 }
 
@@ -823,6 +824,63 @@ $('importForm').addEventListener('submit', async (event) => {
     setStatus('');
   } catch (err) {
     setStatus(err.message, true);
+  }
+});
+
+
+// ---------- Google Sheet sync (admin) ----------
+
+const when = (iso) =>
+  iso
+    ? new Intl.DateTimeFormat('ro-RO', { timeZone: TZ, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
+    : 'niciodată';
+
+function renderSync(status) {
+  const box = $('syncStatus');
+  if (!status.enabled) {
+    box.replaceChildren('Sincronizarea este oprită (SHEET_XLSX_URL=off). Orarul se actualizează doar prin import manual.');
+    $('syncNow').disabled = true;
+    return;
+  }
+  $('syncNow').disabled = Boolean(status.running);
+  const good = status.lastGood;
+  const failedLast = status.lastError && (!status.lastSuccessAt || status.lastAttemptAt > status.lastSuccessAt);
+  box.replaceChildren(
+    good
+      ? h('span', {}, 'Ultima versiune bună: ', h('b', {}, when(status.lastSuccessAt)), ` · ${good.years} ani, ${good.sessions} ore`)
+      : h('span', {}, 'Încă nicio sincronizare reușită: se folosește orarul inclus în aplicație.'),
+    h('br'),
+    h('span', {}, 'Ultima verificare: ', h('b', {}, when(status.lastAttemptAt)),
+      failedLast ? ' · ' : status.lastAttemptAt ? ` · reușită, ${status.lastChangedGroups} grupe modificate` : ''),
+    failedLast && h('span', { class: 'sync-error' }, `eșuată: ${status.lastError} Orarul afișat rămâne neschimbat.`),
+  );
+}
+
+async function loadSyncStatus() {
+  try {
+    renderSync(await api('/api/admin/sync'));
+  } catch (err) {
+    $('syncStatus').textContent = err.message;
+  }
+}
+
+window.addEventListener('psihorar:admin-open', loadSyncStatus);
+$('tabImport').addEventListener('click', loadSyncStatus);
+$('syncNow').addEventListener('click', async () => {
+  $('syncNow').disabled = true;
+  setStatus('Se descarcă fișierul facultății…');
+  try {
+    const result = await api('/api/admin/sync', { method: 'POST' });
+    renderSync(result.status);
+    if (result.ok) {
+      await bootstrap(true);
+      setStatus(result.changedGroups ? `Sincronizat. ${result.changedGroups} grupe actualizate.` : 'Sincronizat. Nicio modificare.');
+    } else {
+      setStatus(`Sincronizarea a eșuat; orarul rămâne la ultima versiune bună. ${result.error}`, true);
+    }
+  } catch (err) {
+    setStatus(err.message, true);
+    loadSyncStatus();
   }
 });
 
