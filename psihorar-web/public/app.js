@@ -753,6 +753,83 @@ document.addEventListener('click', (event) => {
 });
 $('weekNext').addEventListener('click', () => { state.weekOffset += 1; render(); });
 $('jumpNow').addEventListener('click', jumpToNow);
+
+// ---------- Two-finger swipe (touch screens) ----------
+// Left = forward (next week / month), right = back. Two fingers, so one-finger
+// scrolling stays as it is. A pinch (fingers spreading apart) is left to the browser.
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function onTwoFingerSwipe(area, onSwipe, ignore = null) {
+  let g = null;
+  const read = (t) => ({
+    x: (t[0].clientX + t[1].clientX) / 2,
+    y: (t[0].clientY + t[1].clientY) / 2,
+    spread: Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY),
+  });
+  area.addEventListener('touchstart', (event) => {
+    g = null;
+    if (event.touches.length !== 2) return;
+    if (ignore && [...event.touches].some((t) => t.target instanceof Element && t.target.closest(ignore))) return;
+    const p = read(event.touches);
+    g = { start: p, last: p, pinch: false };
+  }, { passive: true });
+  area.addEventListener('touchmove', (event) => {
+    if (!g || g.pinch) return;
+    if (event.touches.length !== 2) { g = null; return; }
+    g.last = read(event.touches);
+    if (Math.abs(g.last.spread - g.start.spread) > 40) { g.pinch = true; return; }
+    if (event.cancelable) event.preventDefault(); // no two-finger page pan while swiping
+  }, { passive: false });
+  area.addEventListener('touchend', () => {
+    if (!g) return;
+    const { start, last, pinch } = g;
+    g = null;
+    const dx = last.x - start.x;
+    const dy = last.y - start.y;
+    if (!pinch && Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.5) onSwipe(dx < 0 ? 1 : -1);
+  });
+  area.addEventListener('touchcancel', () => { g = null; });
+}
+
+/** Slides the new content in from the side it came from. */
+function slideIn(elements, delta) {
+  for (const el of elements) {
+    el.animate?.(
+      reducedMotion.matches
+        ? [{ opacity: 0.4 }, { opacity: 1 }]
+        : [{ transform: `translateX(${delta * 56}px)`, opacity: 0.25 }, { transform: 'none', opacity: 1 }],
+      { duration: reducedMotion.matches ? 150 : 260, easing: 'cubic-bezier(.2,.8,.2,1)' },
+    );
+  }
+}
+
+/** A short bounce: there is nothing further in that direction. */
+function bounce(elements, delta) {
+  if (reducedMotion.matches) return;
+  for (const el of elements) {
+    el.animate?.(
+      [{ transform: 'none' }, { transform: `translateX(${-delta * 18}px)` }, { transform: 'none' }],
+      { duration: 280, easing: 'ease-out' },
+    );
+  }
+}
+
+const TIMETABLE_CONTROLS = 'button, a, input, select, textarea, label, summary, .switch';
+const swipeWeek = (delta) => {
+  const moved = [$('week'), $('rangeTitle')];
+  // Same limit as the ‹ arrow: nothing before week 1.
+  if (delta < 0 && weekNumber(state.shownMonday, state.config.semesterStart) <= 1) return bounce(moved, delta);
+  state.weekOffset += delta;
+  render();
+  slideIn(moved, delta);
+};
+onTwoFingerSwipe(document.querySelector('.week-nav'), swipeWeek, TIMETABLE_CONTROLS);
+onTwoFingerSwipe($('week'), swipeWeek, TIMETABLE_CONTROLS);
+// In the small calendar, the swipe turns the month, like its own arrows.
+onTwoFingerSwipe($('pickerGrid'), (delta) => {
+  movePickerMonth(delta);
+  slideIn([$('pickerGrid'), $('pickerTitle')], delta);
+});
 // Rotation or resizing can switch between stacked and side-by-side days.
 let resizeTimer = null;
 window.addEventListener('resize', () => {

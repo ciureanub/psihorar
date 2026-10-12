@@ -11,6 +11,7 @@ Orarul Facultății de Psihologie (semestrul I, 2026-2027), ca aplicație web re
 | Starea orelor | Gri = trecut, albastru = în desfășurare (cu minute rămase), verde = urmează („Urmează 1h3m” pentru orele de azi) |
 | Fiecare oră | Nume · tip (Curs / Seminar / Practică), profesor coordonator, sala, (Opt.) pentru opționale |
 | Navigare | Săgețile ‹ › de lângă dată schimbă săptămâna (nu înainte de săptămâna 1); Impară / Pară sare la săptămâna cu acea paritate |
+| Glisare (telefon, tabletă) | Cu două degete: pe orar, spre stânga = săptămâna următoare, spre dreapta = cea anterioară (nu înainte de săptămâna 1); în calendarul mic schimbă luna. Nu reacționează pe comutatoare, butoane sau în Administrare; conținutul nou alunecă din lateral |
 | Calendar mic | Iconița de lângă „Descarcă calendarul”: alegi orice zi și se schimbă săptămâna afișată (pară / impară), fără derulare, inclusiv înainte sau după semestru |
 | Ancorare | La deschidere, pagina derulează la ora în desfășurare sau la următoarea; butonul „Acum” revine acolo |
 | Opționale (An I) | Comutatoare AMPAC, TAA, CAP, CFRD: fiecare afișează sau ascunde cursul și seminarul disciplinei, în toate săptămânile. Alegerea se păstrează în browser și se aplică și calendarului |
@@ -19,6 +20,8 @@ Orarul Facultății de Psihologie (semestrul I, 2026-2027), ca aplicație web re
 | Administrator | Login; setări semestru (început, număr de săptămâni); adăugare / modificare / ștergere ore; import din `.xlsx` cu previzualizarea diferențelor |
 
 ## Istoric
+
+Versiunea curentă: **1.1.0** (detalii în `psihorar-web/CHANGELOG.md`).
 
 | Etapă | Ce s-a făcut |
 |---|---|
@@ -33,6 +36,8 @@ Orarul Facultății de Psihologie (semestrul I, 2026-2027), ca aplicație web re
 | 9. Navigare | Săgeți Înapoi / Înainte lângă dată, pentru orice săptămână de la săptămâna 1 încolo |
 | 10. Calendar mic | Selector de dată care deschide săptămâna aleasă, cu numărul săptămânii și paritatea pe fiecare rând |
 | 11. Sursă unică | Scriptul care generează `PsihORAR.html` mutat în repository (`npm run build:html`); sincronizare automată cu fișierul Google Sheets al facultății, cu revenire la ultima versiune bună |
+| 12. v1.0.0 | Copie de siguranță `backups/psihorar-v1.0.0.zip`, eticheta git `v1.0.0`. De aici, versiuni semantice în `psihorar-web/CHANGELOG.md` |
+| 13. v1.1.0 | Glisare cu două degete pe orar (săptămâni) și în calendarul mic (luni), cu animație de alunecare |
 
 Date curente: 3 ani, 29 de grupe, 589 de ore. Anul I are 20 de ore pe grupă, din care 8 opționale.
 
